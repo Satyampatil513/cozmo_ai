@@ -38,11 +38,15 @@ class Measurement:
 class Frame:
     """One observation. depth and pose are optional: that is the entire tier difference."""
     image_path: str
-    K: Optional[np.ndarray] = None          # 3x3 intrinsics
+    K: Optional[np.ndarray] = None          # 3x3 intrinsics, for `image` as held
     T_wc: Optional[np.ndarray] = None       # 4x4 camera-to-world
     depth: Optional[np.ndarray] = None      # HxW metres, None on photo/video tiers
     depth_confidence: Optional[np.ndarray] = None
     tags: list[str] = field(default_factory=list)   # e.g. ["doorway", "room_02"], ["opening"]
+
+    image: Optional[np.ndarray] = None      # working-resolution RGB, EXIF-oriented
+    orig_size: Optional[tuple[int, int]] = None     # (w, h) as shot, after EXIF rotation
+    K_source: str = "unknown"               # how intrinsics were derived; goes in the report
 
 
 @dataclass
@@ -81,3 +85,8 @@ class Scene:
     tier: Tier
     device: str
     rooms: list[RoomCapture]
+    camera_height_m: Optional[float] = None   # operator-stated, the floor-plane scale anchor
+
+    @property
+    def frames(self) -> list[Frame]:
+        return [f for r in self.rooms for f in r.frames]
