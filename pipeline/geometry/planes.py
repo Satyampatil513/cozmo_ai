@@ -182,6 +182,75 @@ GRAVITY_PRIOR_CONE_DEG = 45.0
 CAMERA_UP = np.array([0.0, -1.0, 0.0])
 
 
+# Two fitted planes are the same physical surface if their normals agree to within this angle
+# and they sit within this distance of each other.
+MERGE_ANGLE_DEG = 12.0
+MERGE_DIST_M = 0.08
+
+
+def merge_coplanar(planes: list[Plane], points: np.ndarray,
+                   angle_deg: float = MERGE_ANGLE_DEG,
+                   dist_m: float = MERGE_DIST_M) -> list[Plane]:
+    """Merge planes that are really one surface seen as several.
+
+    Sequential RANSAC extracts one plane at a time and removes its inliers, so a single real
+    wall routinely comes out as two or three planes: the first fit claims the well-observed
+    middle, and the fringes - slightly off-plane from bowing, plaster, or pose drift across a
+    fused capture - get picked up as separate planes later.
+
+    Measured on the fused LiDAR room: eleven planes were extracted for a space with four
+    walls, including three sharing a normal of about [-0.13, 0.03, 0.99]. That is what broke
+    the room polygon, because the wall-ordering step sees three "walls" where there is one,
+    and intersecting near-parallel neighbours produces corners at absurd distances.
+
+    Merging is by normal agreement AND mutual offset, not normal alone: two opposite walls of
+    a room are exactly antiparallel and must never merge, while a wall split in two is both
+    parallel and coincident. Normals are compared with a sign-free dot product because the
+    fitted orientation is arbitrary, so the offset test is what distinguishes those cases.
+
+    Merged planes are refitted over their combined inliers, which also improves the estimate:
+    a wall fitted to all of its evidence beats one fitted to the two-thirds RANSAC happened to
+    claim first.
+    """
+    if len(planes) < 2:
+        return planes
+
+    cos_tol = np.cos(np.radians(angle_deg))
+    order = sorted(range(len(planes)), key=lambda i: -planes[i].n_inliers)
+    groups: list[list[int]] = []
+
+    for i in order:
+        pi = planes[i]
+        placed = False
+        for grp in groups:
+            pj = planes[grp[0]]                     # compare against the group's largest
+            if abs(float(pi.normal @ pj.normal)) < cos_tol:
+                continue
+            # Distance between the two planes, measured at each other's centroid so the test
+            # is symmetric and does not depend on which normal sign was fitted.
+            ci = points[pi.inliers].mean(axis=0)
+            cj = points[pj.inliers].mean(axis=0)
+            d = max(abs(float(pj.normal @ ci) + pj.d), abs(float(pi.normal @ cj) + pi.d))
+            if d <= dist_m:
+                grp.append(i)
+                placed = True
+                break
+        if not placed:
+            groups.append([i])
+
+    merged: list[Plane] = []
+    for grp in groups:
+        if len(grp) == 1:
+            merged.append(planes[grp[0]])
+            continue
+        base = planes[grp[0]]
+        idx = np.unique(np.concatenate([planes[k].inliers for k in grp]))
+        combined = Plane(base.normal.copy(), base.d, idx, base.kind, base.snapped)
+        merged.append(combined.refit(points))
+
+    return sorted(merged, key=lambda p: -p.n_inliers)
+
+
 def estimate_gravity(planes: list[Plane], prior: np.ndarray | None = CAMERA_UP,
                      cone_deg: float = GRAVITY_PRIOR_CONE_DEG) -> np.ndarray:
     """Find the up axis: a Manhattan-frame vote, restricted to a cone around a prior.
@@ -506,6 +575,7 @@ def fit_floor_ceiling(points, normals=None, threshold: float = 0.03,
     planes = extract_planes(points, normals, threshold=threshold)
     if not planes:
         return None
+    planes = merge_coplanar(planes, points)
     gravity = estimate_gravity(planes, prior=gravity_prior)
     planes, gravity, score = classify(planes, gravity, points, camera_at_origin,
                                       selector=selector, signals=signals)

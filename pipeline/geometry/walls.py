@@ -261,3 +261,53 @@ def extract_walls(points, floor_plane, ceiling_plane, walls=None, gravity=None):
     h, spread = ceiling_height(floor_plane, ceiling_plane, points)
     geo.ceiling_height, geo.ceiling_height_spread = h, spread
     return geo
+
+
+# Two walls count as an opposite pair if their normals are parallel to within this angle.
+# Sign-free: a fitted normal's direction is arbitrary (SVD gives no orientation), so opposite
+# walls of a room may come back parallel or antiparallel depending on which way each fit
+# happened to land. Testing for antiparallel alone found zero pairs on real data where five
+# walls and two obvious pairs were present.
+PAIR_ANGLE_DEG = 15.0
+# A room dimension below this is a nook or a mis-merge, not a room width.
+MIN_ROOM_SPAN_M = 1.2
+
+
+def wall_pair_dimensions(walls: list[Plane], gravity: np.ndarray,
+                         points: np.ndarray) -> list[dict]:
+    """Room dimensions from opposite parallel wall pairs, independent of the polygon.
+
+    A closed polygon is the richer output, but it is also the fragile one: it needs every
+    bounding wall found, correctly ordered and successfully intersected, and it returns
+    nothing at all when a capture spills into an adjoining space. On the fused LiDAR room the
+    polygon failed for exactly that reason while the underlying planes were fine.
+
+    The separation between two opposite walls needs none of that. It is the distance between
+    two parallel planes, each fitted to tens of thousands of points, and it is available
+    whenever both walls were seen - which makes it the most reliable metric measurement in the
+    whole pipeline and a useful cross-check on any polygon we do produce.
+
+    Pairs are ranked by combined support so the dominant pair of a room comes first. Returned
+    per pair: separation, the two normals' agreement, and the evidence behind each wall.
+    """
+    cos_tol = np.cos(np.radians(PAIR_ANGLE_DEG))
+
+    out: list[dict] = []
+    for i in range(len(walls)):
+        for j in range(i + 1, len(walls)):
+            a, b = walls[i], walls[j]
+            dot = float(a.normal @ b.normal)
+            if abs(dot) < cos_tol:            # not the same orientation, so not a pair
+                continue
+            ca = points[a.inliers].mean(axis=0)
+            sep = abs(float(b.normal @ ca) + b.d)
+            if sep < MIN_ROOM_SPAN_M:         # coincident or merged: one wall, not two
+                continue
+            out.append({
+                "separation_m": round(sep, 4),
+                "parallel_deg": round(float(np.degrees(np.arccos(min(1.0, abs(dot))))), 2),
+                "support": int(a.n_inliers + b.n_inliers),
+                "normal_a": np.round(a.normal, 3).tolist(),
+                "normal_b": np.round(b.normal, 3).tolist(),
+            })
+    return sorted(out, key=lambda d: -d["support"])

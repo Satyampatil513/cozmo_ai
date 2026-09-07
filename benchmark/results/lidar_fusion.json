@@ -1,0 +1,148 @@
+{
+  "capture": "2026-09-08--00-36-25.r3d",
+  "frames_loaded": 148,
+  "stride": 30,
+  "ground_truth": {
+    "_source": "benchmark/raw/lidar\\measurements.md",
+    "height_m": 2.6,
+    "breadth_m": 3.54,
+    "length_m": 3.77,
+    "window_m": 1.17,
+    "door_m": 2.11
+  },
+  "single_frame": {
+    "per_frame": [
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/0",
+        "ceiling_m": 2.6331,
+        "spread_cm": 8.0,
+        "score": 0.9696
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/360",
+        "ceiling_m": 2.679,
+        "spread_cm": 8.1,
+        "score": 0.9733
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/720",
+        "ceiling_m": null,
+        "score": 0.0002
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/1080",
+        "ceiling_m": 2.7697,
+        "spread_cm": 8.3,
+        "score": 0.9644
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/1440",
+        "ceiling_m": null,
+        "score": 0.0
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/1800",
+        "ceiling_m": null,
+        "score": 0.0
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/2160",
+        "ceiling_m": null,
+        "score": 0.0
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/2520",
+        "ceiling_m": null,
+        "score": 0.0
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/2880",
+        "ceiling_m": 2.7018,
+        "spread_cm": 3.1,
+        "score": 0.649
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/3240",
+        "ceiling_m": null,
+        "score": 0.0002
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/3600",
+        "ceiling_m": 2.4484,
+        "spread_cm": 2.4,
+        "score": 0.7652
+      },
+      {
+        "frame": "2026-09-08--00-36-25.r3d#rgbd/3960",
+        "ceiling_m": null,
+        "score": 0.0
+      }
+    ],
+    "reported": 5,
+    "mean_m": 2.6464,
+    "sd_m": 0.1084,
+    "seconds": 5.7
+  },
+  "fused": {
+    "ceiling_m": 2.7001,
+    "pairs": [
+      {
+        "separation_m": 3.6026,
+        "parallel_deg": 2.37,
+        "support": 84592,
+        "normal_a": [
+          0.119,
+          0.005,
+          -0.993
+        ],
+        "normal_b": [
+          0.16,
+          0.005,
+          -0.987
+        ]
+      },
+      {
+        "separation_m": 3.1115,
+        "parallel_deg": 0.01,
+        "support": 35036,
+        "normal_a": [
+          0.992,
+          0.002,
+          0.127
+        ],
+        "normal_b": [
+          0.992,
+          0.002,
+          0.127
+        ]
+      },
+      {
+        "separation_m": 2.8874,
+        "parallel_deg": 4.92,
+        "support": 25697,
+        "normal_a": [
+          0.992,
+          0.002,
+          0.127
+        ],
+        "normal_b": [
+          0.977,
+          0.001,
+          0.212
+        ]
+      }
+    ],
+    "polygon": null,
+    "selection_score": 0.8571,
+    "n_walls": 5,
+    "gravity": [
+      -0.0025,
+      1.0,
+      0.0051
+    ],
+    "ceiling_spread_cm": 7.5,
+    "n_points": 303878,
+    "n_raw": 1533943,
+    "seconds": 27.3
+  }
+}
