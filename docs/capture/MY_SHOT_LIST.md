@@ -143,6 +143,25 @@ into confident garbage.
 
 ---
 
+# Validate the same evening — before the Pro device arrives
+
+```
+python scripts/validate_capture.py benchmark/raw/photo
+python scripts/validate_capture.py benchmark/raw/video --tier video
+```
+
+Run this the moment the files are off the phone, on the same day you shoot.
+
+It checks the things that are invisible at capture time and unrecoverable afterwards: that
+the scale card is actually present *and usable* in every room, that the lens never switched
+to 0.5x or 3x mid-room, that every room is reachable through a doorway pair, and that frames
+aren't soft. It names the room and tells you what to re-shoot.
+
+`FAIL` means a gate in the brief cannot be met with those files. Fix it while you're still
+in the flat and the furniture hasn't moved.
+
+---
+
 # Ground truth — the part that decides your score
 
 Every gate is measured against these numbers. If they're sloppy, a correct pipeline scores
