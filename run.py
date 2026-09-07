@@ -1,9 +1,14 @@
-"""One command per capture.
+"""One command per capture, for every tier.
 
-    python run.py capture/ --tier lidar --out out/
+    python run.py benchmark/raw/photo --tier photo --out out/
+    python run.py benchmark/raw/video/IMG_0460.MOV --tier video --out out/
+    python run.py benchmark/raw/lidar/scan.r3d --tier lidar --out out/
 
-Tier is auto-detected from folder contents unless given. Everything below the capture layer
-is tier-agnostic by design.
+Tier is auto-detected from the input when not given. All three produce the same output
+contract: `out/result.json` against `schemas/output.schema.json`.
+
+The tiers differ only in the loader. Everything from `pipeline/measure.py` down is shared, so
+a geometry fix lands in all three at once and none of them can silently diverge.
 """
 from __future__ import annotations
 
@@ -12,9 +17,16 @@ import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 
+import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 SCHEMA_VERSION = "0.1"
+VIDEO_EXT = {".mov", ".mp4", ".m4v"}
+PHOTO_EXT = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
 
 
 def git_commit() -> str:
@@ -26,58 +38,133 @@ def git_commit() -> str:
         return "unknown"
 
 
-def detect_tier(capture_dir: str) -> str:
-    names = []
-    for root, _, files in os.walk(capture_dir):
+def detect_tier(path: str) -> str:
+    if os.path.isfile(path):
+        ext = os.path.splitext(path)[1].lower()
+        if ext == ".r3d":
+            return "lidar"
+        if ext in VIDEO_EXT:
+            return "video"
+        return "photo"
+    names: list[str] = []
+    for _root, _dirs, files in os.walk(path):
         names.extend(f.lower() for f in files)
     if any(n.endswith(".r3d") for n in names):
         return "lidar"
-    if any(n.endswith((".mov", ".mp4")) for n in names):
+    if any(os.path.splitext(n)[1] in VIDEO_EXT for n in names):
         return "video"
     return "photo"
 
 
+class _NpEncoder(json.JSONEncoder):
+    """numpy scalars and arrays leak into results from every stage; serialise them once here."""
+
+    def default(self, o):
+        if isinstance(o, (np.integer,)):
+            return int(o)
+        if isinstance(o, (np.floating,)):
+            return None if not np.isfinite(o) else float(o)
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        if isinstance(o, np.bool_):
+            return bool(o)
+        return super().default(o)
+
+
+def load_scene(path: str, tier: str, args, depth_backend):
+    """Dispatch to the tier's loader. The only place the tiers differ."""
+    if tier == "lidar":
+        from pipeline.capture.lidar import load as load_r3d
+        if os.path.isdir(path):
+            cands = [os.path.join(path, f) for f in sorted(os.listdir(path))
+                     if f.lower().endswith(".r3d")]
+            if not cands:
+                raise SystemExit(f"no .r3d under {path}")
+            path = cands[0]
+        return load_r3d(path, stride=args.lidar_stride), {}
+
+    if tier == "video":
+        from pipeline.capture.video import load as load_video
+        if os.path.isdir(path):
+            cands = [os.path.join(path, f) for f in sorted(os.listdir(path))
+                     if os.path.splitext(f)[1].lower() in VIDEO_EXT]
+            if not cands:
+                raise SystemExit(f"no video under {path}")
+            path = cands[0]
+        return load_video(path, every_n=args.video_every_n, max_frames=args.max_frames,
+                          depth_backend=depth_backend, progress=True)
+
+    from pipeline.capture.photo import load as load_photo
+    return load_photo(path), {}
+
+
 def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("capture_dir")
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("input", help="capture directory, .r3d file, or video file")
     ap.add_argument("--tier", choices=["photo", "video", "lidar"], default=None)
     ap.add_argument("--out", default="out")
+    ap.add_argument("--backend", default="metric3d_v2", help="depth backend for photo/video")
+    ap.add_argument("--no-cache", action="store_true", help="skip the depth cache")
+    ap.add_argument("--lidar-stride", type=int, default=30)
+    ap.add_argument("--video-every-n", type=int, default=30)
+    ap.add_argument("--max-frames", type=int, default=None)
     ap.add_argument("--no-drift-correction", action="store_true",
-                    help="ablation: compose room poses as-is, no pose graph")
+                    help="ablation: compose poses as-is, no pose graph (not yet implemented)")
     args = ap.parse_args()
 
-    tier = args.tier or detect_tier(args.capture_dir)
+    t_start = time.time()
+    tier = args.tier or detect_tier(args.input)
     os.makedirs(args.out, exist_ok=True)
+
+    depth_backend = None
+    if tier in ("photo", "video"):
+        from pipeline.capture.depth import get_backend
+        depth_backend = get_backend(args.backend)
+
+    scene, meta = load_scene(args.input, tier, args, depth_backend)
+
+    from pipeline.measure import measure_room
+    rooms = []
+    for room in scene.rooms:
+        print(f"  measuring {room.room_id} ({len(room.frames)} frames)...")
+        rooms.append(measure_room(room, depth_backend=depth_backend,
+                                  cache=not args.no_cache))
 
     result = {
         "schema_version": SCHEMA_VERSION,
         "capture": {
             "tier": tier,
-            "device": "unknown",
+            "input": os.path.basename(os.path.normpath(args.input)),
+            "device": scene.device,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "pipeline_commit": git_commit(),
-            "scale_source": "none",
+            "scale_source": scene.rooms[0].scale.source if scene.rooms else "none",
+            "depth_backend": args.backend if depth_backend else None,
             "drift_correction": not args.no_drift_correction,
+            "loader_meta": {k: v for k, v in (meta or {}).items() if k != "odometry"},
         },
-        "property": {"rooms": [], "connections": [], "footprint_area": None},
-        "rooms": [],
+        "property": {
+            "rooms": [r["room_id"] for r in rooms],
+            "connections": [],          # NOT BUILT: needs cross-room registration
+            "footprint_area": None,     # NOT BUILT: needs the stitch
+        },
+        "rooms": rooms,
+        "timing_seconds": round(time.time() - t_start, 1),
     }
 
-    # Pipeline stages land here in order. Each one is committed separately.
-    #   scene   = capture.load(args.capture_dir)
-    #   planes  = geometry.planes.fit_floor_ceiling(...)
-    #   walls   = geometry.walls.extract_walls(...)
-    #   opens   = geometry.openings.detect_openings(...)
-    #   dmg     = damage.detect.detect(...)
-    #   plan    = stitching.stitch.stitch(rooms, drift_correction=...)
-    #   render  = output.render.render_plan(...)
+    out_path = os.path.join(args.out, "result.json")
+    with open(out_path, "w") as fh:
+        json.dump(result, fh, indent=2, cls=_NpEncoder)
 
-    with open(os.path.join(args.out, "result.json"), "w") as fh:
-        json.dump(result, fh, indent=2)
-
-    print(f"tier={tier} commit={result['capture']['pipeline_commit']}")
-    print(f"wrote {os.path.join(args.out, 'result.json')}")
-    print("STAGES NOT BUILT: geometry, stitching, damage, render")
+    print(f"\ntier={tier}  commit={result['capture']['pipeline_commit']}  "
+          f"{result['timing_seconds']}s")
+    for r in rooms:
+        ch = r.get("ceiling_height")
+        print(f"  {r['room_id']:<24} mode={r.get('mode','-'):<10} "
+              f"ceiling={f'{ch:.3f}m' if ch else 'abstained':<12} "
+              f"walls={r.get('n_walls','-')} openings={len(r.get('openings', []))}")
+    print(f"wrote {out_path}")
+    print("NOT BUILT: multi-room stitching, damage detection, rendered plan")
     return 0
 
 

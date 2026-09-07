@@ -28,3 +28,6 @@ Thumbs.db
 
 # Depth cache: regenerable, content-hashed. Delete freely.
 benchmark/cache/
+out_photo/
+out_video/
+out_lidar/
