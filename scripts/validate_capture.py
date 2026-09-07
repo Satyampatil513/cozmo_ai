@@ -37,11 +37,14 @@ VIDEO_EXT = {".mov", ".mp4", ".m4v"}
 CAMERA_HEIGHT_RANGE_CM = (110.0, 190.0)
 MIN_STILLS = 2                 # the brief's floor: "2 to 8 stills per room"
 GOOD_STILLS = 6                # below this the intervals widen for no good reason
-MIN_VIDEO_S, MAX_VIDEO_S = 45.0, 90.0
+MIN_VIDEO_S = 20.0             # shorter than this cannot cover a room at walking pace
 FRAME_BLUR_FLOOR = 60.0        # whole-frame Laplacian variance
 VIDEO_SAMPLE_FRAMES = 40
 
-DOORWAY_RE = re.compile(r"doorway_to_(room_\d+)[_-]?([ab])?", re.I)
+# Matches doorway_to_<room>.jpg and the older doorway_to_<room>_a/_b.jpg pair form.
+# <room> is matched against the actual folder names rather than a fixed pattern, so the
+# operator can call their rooms whatever they like.
+DOORWAY_RE = re.compile(r"doorway_to_(.+?)(?:[_-]([ab]))?$", re.I)
 
 
 @dataclass
@@ -177,11 +180,11 @@ def check_video_room(room: str, files: list[str], rep: Report) -> None:
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        is_whole = "whole" in name.lower() or "property" in name.lower() or "flat" in name.lower()
         if dur <= 0:
             rep.warn(scope, f"{name}: could not read duration")
-        elif not is_whole and not (MIN_VIDEO_S <= dur <= MAX_VIDEO_S):
-            rep.warn(scope, f"{name}: {dur:.0f}s, outside the {MIN_VIDEO_S:.0f}-{MAX_VIDEO_S:.0f}s window")
+        elif dur < MIN_VIDEO_S:
+            rep.warn(scope, f"{name}: only {dur:.0f}s - too short to cover a room at "
+                            f"walking pace")
 
         # Sample across the clip for motion blur.
         blurry = 0
@@ -202,36 +205,39 @@ def check_video_room(room: str, files: list[str], rep: Report) -> None:
 
 
 def check_adjacency(rooms: dict[str, list[str]], rep: Report) -> None:
-    """Doorway pairs are the only adjacency evidence photo folders carry.
+    """Doorway shots are the only adjacency evidence photo folders carry.
 
     The brief fails a photo path that handles single rooms only, and per-room folders
     contain nothing that says two rooms touch. If this graph is not connected, the
     whole-property stitch gate cannot be met no matter how good the per-room geometry is.
+    One photo taken from the doorway into the next room is enough to make the edge.
     """
     edges: set[tuple[str, str]] = set()
-    halves: dict[tuple[str, str], set[str]] = defaultdict(set)
 
     for room, files in rooms.items():
         for f in files:
-            m = DOORWAY_RE.search(os.path.basename(f))
+            stem = os.path.splitext(os.path.basename(f))[0]
+            m = DOORWAY_RE.search(stem)
             if not m:
                 continue
-            target_prefix, half = m.group(1).lower(), (m.group(2) or "").lower()
-            target = next((r for r in rooms if r.lower().startswith(target_prefix)), None)
+            named = m.group(1).lower().strip("_-")
+            # Accept an exact folder name, or either name being a prefix of the other, so
+            # "doorway_to_hall" finds room_05_hall and vice versa.
+            target = next(
+                (r for r in rooms
+                 if r.lower() == named
+                 or r.lower().endswith(named)
+                 or named.startswith(r.lower())),
+                None,
+            )
             if target is None:
-                rep.warn(room, f"doorway shot references {target_prefix}, which is not a room folder")
+                rep.warn(room, f"doorway shot names '{named}', which is not a room folder")
                 continue
-            edges.add(tuple(sorted((room, target))))
-            if half:
-                halves[tuple(sorted((room, target)))].add(half)
-
-    for pair, hs in sorted(halves.items()):
-        if hs != {"a", "b"}:
-            rep.warn("adjacency", f"{pair[0]} <-> {pair[1]}: only half the doorway pair "
-                                  f"({', '.join(sorted(hs)) or 'unlabelled'}) - need both _a and _b")
+            if target != room:
+                edges.add(tuple(sorted((room, target))))
 
     if not edges:
-        rep.fail("adjacency", "no doorway pair shots anywhere - the rooms cannot be placed "
+        rep.fail("adjacency", "no doorway shots anywhere - the rooms cannot be placed "
                               "relative to each other and the whole-property stitch gate fails")
         return
 
@@ -250,10 +256,10 @@ def check_adjacency(rooms: dict[str, list[str]], rep: Report) -> None:
                 stack.append(nxt)
     missing = sorted(set(rooms) - seen)
     if missing:
-        rep.fail("adjacency", f"not reachable through any doorway pair: {', '.join(missing)} "
-                              f"- shoot a doorway pair connecting each to the rest")
+        rep.fail("adjacency", f"not reachable through any doorway shot: {', '.join(missing)} "
+                              f"- shoot through the doorway connecting each to the rest")
     else:
-        rep.ok("adjacency", f"all {len(rooms)} rooms connected via {len(edges)} doorway pair(s)")
+        rep.ok("adjacency", f"all {len(rooms)} rooms connected via {len(edges)} doorway shot(s)")
 
 
 def check_camera_height(root: str, rep: Report) -> None:

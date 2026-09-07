@@ -46,6 +46,22 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 2.11 | JSON to published schema | schemas/output.schema.json | schema | PARTIAL |
 | 2.12 | Rendered plan | pipeline/output/render.py | SVG + PNG | NOT BUILT |
 
+## Open interpretation: which gates loosen at the photo and video tiers
+
+The brief says "Photo-tier and video-tier gates are looser (photo: wall lengths within +/-8%
+with calibrated intervals; video: +/-3%)". The parenthetical names **wall lengths only**. It
+does not say whether the opening-width gate (<=2 cm on >=85%) and the ceiling gate (<=1.5 cm)
+also loosen at those tiers, or hold at the LiDAR value throughout.
+
+It matters: <=2 cm on a 0.9 m door is +/-2.2%, four times tighter than the +/-8% allowed on a
+wall in the same room. Reading the opening gate as tier-invariant makes the photo tier
+dramatically harder than its own wall gate implies.
+
+We do not resolve this by assuming. The benchmark report states opening and ceiling error at
+every tier against the strict thresholds, and says plainly that we read them as
+tier-invariant. If the intended reading was looser, we are reporting against a harder bar
+than required, which costs nothing. The reverse assumption would have cost the row.
+
 ## Part 2: benchmark and gates
 
 | # | Requirement | Path | Artifact | Status |

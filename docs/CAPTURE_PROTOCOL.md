@@ -1,6 +1,6 @@
 # Capture Protocol — Route 2, stock capture
 
-Version 0.4. One page. A non-engineer follows this literally, and at the defense you will.
+Version 0.5. One page. A non-engineer follows this literally, and at the defense you will.
 
 **Nothing to print, nothing to place in the room.** Install an app, walk, hand over the
 files. Any picture in, results out.
@@ -20,35 +20,28 @@ on any iPhone 15 or newer.
 **Camera settings:** Formats → Most Compatible. Video → 1080p/30. Live Photos off. **1x wide
 lens only** — never 0.5x or 3x, and never switch lens inside a room. Flash off.
 
-## Tell us one number
+## Optional: one number
 
-**Roughly how high you held the phone**, in centimetres — chest height for most people, about
-140–155 cm. Your own height is a fine answer if that's easier; we'll take 0.82 of it.
-
+**Roughly how high you held the phone**, in centimetres — chest height, about 140–155 cm.
 Write it in `capture/capture_info.txt` as `camera_height_cm: 145`, or just tell us.
 
-Photos and video contain no absolute size information — a room and a perfect dollhouse
-replica of it produce identical pixels. We recover metres from a monocular metric depth model,
-and this one number gives us a second, independent estimate from the floor plane. Where the
-two disagree is our scale uncertainty, which is how the confidence intervals get their width
-instead of us inventing one. An estimate to the nearest 5 cm is genuinely enough; a wrong
-number is worse than a rough one, so guess honestly rather than precisely.
-
-If you skip it we still work, with wider intervals and `scale_source = monocular_metric`
-recorded in the output.
+Entirely optional. We recover metres from a metric depth model either way; this gives us a
+second, independent estimate off the floor plane, and the two disagreeing is how the
+confidence intervals get their width instead of us inventing one. Nearest 5 cm is plenty.
+Skip it and everything still runs, with wider intervals and `scale_source =
+monocular_metric` recorded in the output.
 
 ## Folders
 
-One folder per room, real name after the number. The number sets processing order only.
+One folder per room. Any names you like.
 
 ```
 capture/
-  capture_info.txt
-  room_01_living/
-  room_02_bed_master/
-  room_03_bed_two/
-  room_04_bed_three/
-  room_05_hall/          <- the connector
+  living/
+  bedroom1/
+  bedroom2/
+  bedroom3/
+  hallway/
 ```
 
 ## Photo tier — 6 to 8 stills per room
@@ -64,24 +57,28 @@ Phone upright, chest height, held level, 1x lens.
 is one of our two scale anchors, and frames shot level from chest height give it to us for
 free — which is the main reason for "hold the phone level" above.
 
-**Doorway pair, once per connected pair of rooms.** Stand in the doorway and take one photo
-into each room **without moving your feet**. Save both into the lower-numbered room's folder
-as `doorway_to_room_NN_a.jpg` and `_b.jpg`. This is the only adjacency evidence a set of
-photo folders contains; without it the rooms cannot be placed relative to each other.
+**One shot through each doorway.** Stand in the doorway and take a photo into the next room.
+Name it after that room: `doorway_to_hallway.jpg`. This is the only adjacency evidence a set
+of per-room photo folders contains; without it the rooms cannot be placed relative to each
+other.
 
 Consecutive shots should overlap by roughly half a frame. Two stills is the accepted minimum
 and the intervals widen accordingly.
 
-## Video tier — one clip per room, 45 to 90 s
+## Video tier — one walkthrough of the whole property
 
-Walk the perimeter slowly, phone upright at chest height, tilting gently so the floor-to-wall
-join and the ceiling-to-wall join both pass through frame on every wall. Pause 2 s square-on
-to each opening. Finish where you started, overlapping the first few seconds.
+One continuous clip, no stopping, through every room and back to where you started.
 
-Do not walk backwards. Do not spin on the spot.
+Phone upright at chest height, walking slowly — about a step every two seconds. Tilt gently
+up and down as you go so the floor-to-wall join and the ceiling-to-wall join both pass
+through frame on every wall. Pause 2 s square-on at each opening. Through a doorway: face it
+and walk straight through slowly, without cutting the corner.
 
-**Whole-property clip:** one continuous recording through every space, walking squarely and
-slowly through each doorway, returning to the start.
+Do not walk backwards. Do not spin on the spot. Fast motion is the main cause of an unusable
+clip.
+
+Per-room clips are accepted too, if that suits you better — the pipeline segments a
+whole-property walk by room either way.
 
 ## LiDAR tier — Record3D
 
@@ -89,8 +86,8 @@ Highest depth quality available; do not change settings between rooms. Same walk
 tier. **Stay 0.5 m to 4 m from surfaces** — depth returns nothing closer and degrades badly
 further out. Close the loop back to your start point.
 
-Export: Library → select recording → Export → `.r3d`. One file per room, plus one continuous
-whole-property recording.
+Export: Library → select recording → Export → `.r3d`. One continuous whole-property
+recording, or one file per room.
 
 ## Damage
 

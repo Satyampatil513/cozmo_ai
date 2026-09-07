@@ -1,186 +1,154 @@
-# Photo and video field guide — print this and carry it
+# Photo and video capture — the whole thing
 
-Step by step, in the order you do it. iPhone 17, one room at a time.
+Nothing to print. Nothing to install. Nothing to put on the walls.
 
-`MY_SHOT_LIST.md` is the reasoning. This is the procedure.
-
----
-
-## Step 0 — Once, before you start (15 minutes)
-
-**Phone settings** (Settings → Camera):
-
-- Formats → **Most Compatible**
-- Record Video → **1080p at 30 fps**
-- Preserve Settings → Camera Mode → **On**
-- Live Photo → **Off** (in the camera app, the circular icon top-right, slash through it)
-- Grid → **On**
-
-**Nothing to print, nothing to put on the walls.** Install nothing beyond the stock camera.
-
-**Note your phone height once.** Roughly how high you hold the phone when shooting — chest
-height, about 140-155 cm for most people. Measure it once with a tape and write it into
-`benchmark/raw/capture_info.txt` as `camera_height_cm: 145`.
-
-That single number is one of the two ways the photo and video tiers recover real-world
-size (the other is a metric depth model). To the nearest 5 cm is fine. Then hold the phone
-at that height consistently — which you were going to do anyway.
+Open the camera, take photos, walk through with video. Turning that into measurements is the
+software's job, not yours.
 
 ---
 
-## Step 1 — Per room, the photo set
+## Settings, once
 
-You are taking **6 to 8 photos**. Hold the phone **vertically**, at **chest height**,
-**level** — not angled up at the ceiling. Stay on **1x**. Never pinch-zoom.
+Settings → Camera: **Formats → Most Compatible**, **Record Video → 1080p/30**, Live Photos
+**off**.
 
-### The four corner shots
+Then leave the camera on **1x** for everything. Never 0.5x or 3x. This one is worth caring
+about — mixing lenses inside a room changes the optics mid-reconstruction and quietly makes
+the result worse rather than failing loudly.
 
-Stand in a corner, back roughly to it, and shoot toward the **opposite** corner.
-Repeat in all four corners.
+## Folders
 
 ```
-   C1 ──────────────── C2         Stand at C1, shoot toward C3.
-   │                    │         Stand at C2, shoot toward C4.
-   │       room         │         Stand at C3, shoot toward C1.
-   │                    │         Stand at C4, shoot toward C2.
-   C4 ──────────────── C3
+benchmark/raw/photo/
+    living/
+    bedroom1/
+    bedroom2/
+    bedroom3/
+    hallway/
 ```
 
-**Stand about half a metre out from the corner**, not jammed into it. Pressed against the
-wall you lose the two walls right beside you, which are the ones that corner was supposed
-to cover.
-
-### Then two to four more
-
-5. **Each door**: stand square-on, whole door frame in shot plus some wall around it.
-6. **Each window**: same.
-7. **Fill up to 8** from partway along each wall, wherever coverage looks thin.
-
-### Keep the floor in shot
-
-Every frame should show **where the wall meets the floor**. The floor plane is one of the
-two things that give the room its real size, and holding the phone level at a known height
-hands it to us for nothing. A set of photos angled up at the ceiling has no scale anchor.
-
-### The one rule that matters more than the count
-
-**Every photo must share about half its view with another photo.**
-
-Six overlapping photos beat eight unrelated ones. If two shots have nothing in common, the
-software cannot work out that they're the same room. When in doubt, take an extra shot
-halfway between two you already have.
+Any names you like, one folder per room. Use the same names in your ground-truth sheet.
 
 ---
 
-## Step 2 — The doorway pairs (do not skip)
+## Photos — 6 to 8 per room
 
-**Once for every doorway that connects two rooms.**
+Phone vertical, chest height, held level.
 
-Stand **in the doorway**. Take one photo facing into the first room. Then, **without moving
-your feet**, turn around and take one facing into the other room.
+- One from **each corner**, shooting at the opposite corner.
+- One **square-on to each door and window**.
+- Fill up to 8 wherever coverage looks thin.
 
-Feet still. That's the whole trick — the two photos share a viewpoint, which is what tells
-the software the rooms are next to each other.
+**Two things actually matter:**
 
-Save both into the **lower-numbered** room's folder:
+**Overlap.** Consecutive photos should share about half their view. Six overlapping photos
+beat eight unrelated ones — with no overlap the software cannot tell they are the same room.
 
-```
-doorway_to_room_05_a.jpg      <- facing into this room
-doorway_to_room_05_b.jpg      <- facing into room_05
-```
+**Shoot through the doorways.** For each doorway, stand in it and take one photo into the
+next room. Name it after that room: `doorway_to_hallway.jpg`.
 
-In a 3BHK that's normally four pairs: living↔hall, and hall↔each of the three bedrooms.
+That second one is the only thing linking your rooms together. Per-room photo folders contain
+nothing else saying two rooms touch, and the whole-property stitch is a scored gate. It is
+one extra photo per doorway — four in a 3BHK.
 
-**If you skip these, the rooms cannot be assembled into a floor plan at all.** Per-room
-folders contain nothing else that says two rooms touch.
-
----
-
-## Step 3 — Per room, the video
-
-**One continuous clip, 45 to 90 seconds.** Phone vertical, chest height, both hands.
-
-1. Start in a corner. Press record. **Stand still for 3 seconds** before moving.
-2. Walk the perimeter of the room, **slowly** — about one step every two seconds.
-3. As you walk, **tilt gently up and down**, so that the line where the wall meets the
-   **floor** and the line where the wall meets the **ceiling** both pass through frame on
-   every wall. Those two lines are what the room's dimensions get measured from. A video of
-   just the middle of the walls is close to useless.
-4. **Stop 2 seconds square-on at each door and each window.**
-5. Finish where you started and **keep recording for 3 more seconds**, overlapping your
-   opening view. Closing the loop lets drift be corrected; an open-ended walk can't be.
-
-**Never:** walk backwards, spin on the spot, or swing the phone quickly. Fast motion is the
-number one cause of a clip that has to be thrown away.
+Keeping the **wall-floor line in shot** helps too; held level at chest height it will be.
 
 ---
 
-## Step 4 — The whole-flat video
+## Video — walk the whole flat, twice
 
-**One single clip, no stopping, through every room and back to where you began.**
+One continuous clip, no stopping, through every room and back to where you started:
 
-Walk it as a loop: living → hall → bedroom 1 → back to hall → bedroom 2 → back to hall →
-bedroom 3 → hall → living.
+living → hallway → bedroom1 → hallway → bedroom2 → hallway → bedroom3 → hallway → living
 
-Going through a doorway: **face it square, walk straight through slowly, don't cut the
-corner.** The doorways are where the rooms get linked, so they're where slowness pays.
+- Phone vertical, chest height, both hands.
+- **Slowly.** About a step every two seconds. Fast motion is the main reason a clip is
+  unusable.
+- **Tilt gently up and down** as you walk, so the wall-floor line and the wall-ceiling line
+  both pass through frame on every wall. Those two lines are what heights and widths get
+  measured from.
+- Pause 2 seconds square-on at each door and window.
+- Through a doorway: face it, walk straight through slowly, do not cut the corner.
 
-If it felt bad, do it again. It's two minutes.
+**Then do the whole walk a second time**, a few minutes later, walked fresh rather than
+copied from memory. Two independent walkthroughs satisfy the repeatability gate for every
+room at once, which is the cheapest way to get it.
 
----
-
-## Step 5 — The repeat room
-
-Pick your **emptiest** room. Do the photo set **and** the video again.
-
-Leave the room first, do something else for five minutes, then come back and shoot it
-**fresh** — don't retrace your first walk from memory. The point is to test whether the
-system gives the same answer twice, and copying yourself exactly measures nothing.
-
-Save into folders ending `_pass2`.
+Do not walk backwards. Do not spin on the spot.
 
 ---
 
-## Step 6 — The two odd ones
+## Two small extras the brief asks for
 
-**The 2-photo room.** Pick any room and take **exactly 2** photos of it, into its own
-`_min2` folder. This proves the floor of "any picture in, results out".
+**A 2-photo room.** Pick any room, take exactly 2 photos, put them in `photo/min2_<room>/`.
+The brief sets 2 stills as the floor — this is what shows the intervals widening honestly
+instead of staying confident on thin input.
 
-**The hard case.** Deliberately shoot one thing that should break the system: a mirror, a
-glass door, glossy tile, or a room lit by one lamp at night. Into a `hard_case` folder.
-A failure you measured and declared scores; one you didn't find gets found at the defense.
+**One hard case.** Deliberately shoot something that should break it: a mirror, a glass door,
+glossy tile, or a room lit by a single lamp. Into `photo/hard_case/`. A failure you measured
+and declared scores; one you never looked for gets found at the defense.
 
 ---
 
-## Step 7 — Off the phone, then validate
+## Optional: your phone height
 
-Files → upload to Drive → download on the laptop into:
+If it is easy, measure how high you hold the phone (chest height, usually 140–155 cm) and
+put it in `benchmark/raw/capture_info.txt` as `camera_height_cm: 145`.
 
-```
-benchmark/raw/photo/room_01_living/
-benchmark/raw/video/room_01_living/
-```
+Photos carry no absolute size information, so the pipeline gets metres from a depth model.
+Your phone height gives it a second, independent estimate off the floor plane, and the two
+disagreeing is what sets how wide the confidence intervals are. One tape measurement, once,
+ever — not per room, not per capture. Skip it if you like; everything still runs, with wider
+intervals.
 
-Then, **the same evening**:
+---
+
+## Ground truth — separate from the capture, and the part that decides your score
+
+These measurements never enter the pipeline. They are what you score its output against, so
+if they are sloppy a correct pipeline looks broken and you cannot tell which you have.
+
+Per room, into `benchmark/ground_truth/`:
+
+- Every **wall length**, at floor level along the skirting.
+- **Ceiling height at two points**, not one — floors are not level and the gate is tight.
+- Every **opening**: width and height, measured at the frame, not the door or window panel.
+- **Floor area** — derive from walls if rectangular, measure directly if not.
+- **Damage regions**: long axis and short axis.
+- A few **cross-room spans** (living wall to hallway wall, and the longest chain you have).
+  Per-room measurements cannot detect drift accumulating across the stitch, and drift is its
+  own gate.
+
+A **laser measurer** is worth the ₹1,500–2,500. The ceiling gate is 1.5 cm, tighter than a
+tape held across a room is reliably good for.
+
+Measure twice where you can and keep both numbers — the disagreement is your ground-truth
+uncertainty, and reporting it beats pretending the tape is exact.
+
+---
+
+## Then check it
 
 ```
 python scripts/validate_capture.py benchmark/raw/photo
 python scripts/validate_capture.py benchmark/raw/video --tier video
 ```
 
-Fix every `FAIL` the same day, while the furniture hasn't moved and you can still walk
-back into the room. That is the entire reason to validate on shoot day rather than next week.
+Run this the same day, while you can still walk back into the room. It catches what is
+invisible while shooting and unfixable later: a lens that switched to 0.5x, a room with too
+few stills, a room nothing connects to, soft frames.
 
 ---
 
-## Quick reference
+## The whole thing on one screen
 
-| | Per room |
+| | |
 |---|---|
-| Photos | 4 corners + 1 per opening + fill = **6-8**, floor visible in each |
-| Doorway pairs | 2 photos per connecting door, **feet still** |
-| Video | **45-90 s**, slow perimeter, tilt up and down, pause at each opening |
-| Whole flat | **one** continuous clip, all rooms, back to start |
+| Photos | 6–8 per room, overlapping, **+1 shot through each doorway** |
+| Video | one slow walk through the whole flat, **done twice** |
+| Extras | a 2-photo room, one deliberately hard surface |
+| Optional | phone height in `capture_info.txt` |
+| Separately | tape/laser ground truth, including cross-room spans |
 
-**The four things people get wrong:** tilting the phone up so the floor never appears,
-walking too fast, forgetting the doorway pairs, and letting the camera switch off 1x.
+**What people get wrong:** walking too fast, no overlap between shots, forgetting to shoot
+through the doorways, and letting the camera slip off 1x.
