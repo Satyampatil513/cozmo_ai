@@ -26,8 +26,8 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 1.3a | Monocular metric depth | pipeline/capture/depth.py | backend + registry | PARTIAL - runs, +26% scale error |
 | 1.3b | Depth to oriented point cloud | pipeline/geometry/lift.py | lift() | DONE |
 | 1.3c | Fusion of the two, sigma from their disagreement | pipeline/capture/scale.py | fused Scale | NOT BUILT |
-| 1.4 | Video tier | pipeline/capture/video.py | loader | NOT BUILT |
-| 1.5 | LiDAR tier, depth + poses + intrinsics | pipeline/capture/lidar.py | loader | NOT BUILT |
+| 1.4 | Video tier | pipeline/capture/video.py | loader + RGB-D odometry | DONE - 15/30 frames posed on real clip |
+| 1.5 | LiDAR tier, depth + poses + intrinsics | pipeline/capture/lidar.py | .r3d loader | DONE |
 
 ## Part 2: output contract
 
@@ -36,14 +36,14 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 2.1 | Walls | pipeline/geometry/walls.py | room polygon | DONE - untested on real data |
 | 2.2 | Ceiling height | pipeline/geometry/planes.py | measurement | PARTIAL - +26% vs tape, see benchmark/results/baseline_ceiling_height.md |
 | 2.3 | Floor area | pipeline/geometry/walls.py | measurement | DONE - untested on real data |
-| 2.4 | Openings | pipeline/geometry/openings.py | list | NOT BUILT |
+| 2.4 | Openings | pipeline/geometry/openings.py | list | PARTIAL - door height +1.9% vs tape, 1 false positive |
 | 2.5 | Stitched plan with adjacency | pipeline/stitching/stitch.py | property plan | NOT BUILT |
 | 2.6 | Damage regions, class + metric extent | pipeline/damage/detect.py | list | NOT BUILT |
 | 2.7 | Concealed-damage flags with rule fired | pipeline/damage/rules.py | list | NOT BUILT |
 | 2.8 | Scope line items keyed to surfaces | pipeline/damage/scope.py | list | NOT BUILT |
 | 2.9 | Confidence interval on every measurement | pipeline/confidence/intervals.py | Measurement | PARTIAL |
-| 2.10 | One command per capture | run.py | CLI | PARTIAL |
-| 2.11 | JSON to published schema | schemas/output.schema.json | schema | PARTIAL |
+| 2.10 | One command per capture | run.py | CLI, all 3 tiers | DONE |
+| 2.11 | JSON to published schema | schemas/output.schema.json | schema | PARTIAL - emitted, not yet validated in CI |
 | 2.12 | Rendered plan | pipeline/output/render.py | SVG + PNG | NOT BUILT |
 
 ## Open interpretation: which gates loosen at the photo and video tiers
@@ -84,10 +84,10 @@ than required, which costs nothing. The reverse assumption would have cost the r
 | # | Requirement | Path | Artifact | Status |
 |---|---|---|---|---|
 | 3.1 | Head-to-head, 2 rooms, LiDAR tier | benchmark/results/head_to_head.md | table | NOT BUILT |
-| 4.1 | Fix declaration, one page | docs/FIX_DECLARATION.md | page | NOT BUILT |
-| 4.2 | Before run, regenerable | benchmark/results/before/ | outputs | NOT BUILT |
-| 4.3 | After run, regenerable | benchmark/results/after/ | outputs | NOT BUILT |
-| 4.4 | Readable diff | benchmark/results/fix_diff.md | diff | NOT BUILT |
+| 4.1 | Fix declaration, one page | docs/FIX_DECLARATION.md | page + post-mortem | DONE |
+| 4.2 | Before run, regenerable | benchmark/scripts/fix_loop_photo.py | selector="largest" | DONE |
+| 4.3 | After run, regenerable | benchmark/scripts/fix_loop_photo.py | selector="joint" | DONE |
+| 4.4 | Readable diff | benchmark/results/fix_loop_photo.md | before/after + ablation | DONE |
 | 5.1 | Commit history | .git | log | IN PROGRESS |
 | D.0 | Capture sessions executed | benchmark/raw/ | media | NOT BUILT - blocked on the shoot |
 | D.3 | README, fresh machine to running in 15 min | README.md | doc | PARTIAL |

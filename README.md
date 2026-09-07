@@ -20,17 +20,35 @@ python scripts/fetch_weights.py                     # not built yet
 
 ## Run one capture
 
-```
-python run.py capture/ --out out/
-```
-
-Writes `out/result.json`, `out/plan.svg`, `out/plan.png`.
-
-Drift ablation:
+Same command and same output contract for every tier; the tier is auto-detected when omitted.
 
 ```
-python run.py capture/ --out out_nodrift/ --no-drift-correction
+python run.py benchmark/raw/photo              --tier photo --out out_photo
+python run.py benchmark/raw/video/clip.MOV     --tier video --out out_video
+python run.py benchmark/raw/lidar/scan.r3d     --tier lidar --out out_lidar
 ```
+
+Writes `out/result.json` against `schemas/output.schema.json`. Rendered plans are NOT BUILT.
+
+The tiers differ only in their loader. Everything from `pipeline/measure.py` down is shared,
+and it dispatches on whether frames carry poses rather than on the tier name - so a video
+whose odometry failed degrades to the per-frame path instead of pretending it has a
+trajectory.
+
+Benchmarks and reports:
+
+```
+python benchmark/scripts/report.py --run          # every tier, then one table
+python benchmark/scripts/fix_loop_photo.py        # before/after + signal ablation
+python benchmark/scripts/inspect_r3d.py           # what a .r3d actually contains
+python tests/test_smoke.py                        # all three tiers, interface invariants
+```
+
+Depth inference is cached by content hash under `benchmark/cache/` (gitignored). Pass
+`--no-cache` to force the live path.
+
+See `OVERNIGHT_PROGRESS.md` for current measured accuracy, known failure modes and what is
+blocked on missing capture data.
 
 ## Capture
 
@@ -50,6 +68,14 @@ capture at the walk-in test, or the benchmark predicts nothing.
 LiDAR requires a Pro-class iPhone. On a non-Pro device that tier fails loudly rather than
 falling back to the video path - reporting video-tier accuracy under a LiDAR-tier label
 would be worse than refusing.
+
+## Status
+
+Working: all three tier loaders, multi-view fusion for posed captures, plane geometry,
+ceiling height, wall-pair dimensions, a first-pass opening detector, and a regenerable fix
+loop. NOT BUILT: multi-room stitching, damage detection, rendered plans. Accuracy today is
++3.8% ceiling on LiDAR, +7.2% on video, and -13% to +12% per room on photo - see
+`docs/COMPLIANCE_MATRIX.md` for the row-by-row state.
 
 ## Design in one paragraph
 
