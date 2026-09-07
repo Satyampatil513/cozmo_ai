@@ -1,5 +1,14 @@
 # Capture sessions (print this, tick as you go)
 
+Companion to:
+- `docs/capture/MY_SHOT_LIST.md` - what I shoot on the iPhone 17 (photo + video)
+- `docs/capture/FRIEND_LIDAR_BRIEF.md` - send verbatim to whoever brings the Pro device
+- `docs/capture/DAMAGE_LOG.md` - what damage to look for and how to record it
+- `docs/CAPTURE_PROTOCOL.md` - the one-pager Cozmo follows at the defense
+
+The borrowed Pro device is the scarce resource in all of this. Everything that does not
+need it gets done before it arrives.
+
 Three sessions, not one. Capture is cheap in your own home, so don't front-load everything;
 build the loader against real data early and let the later sessions fix what the early one
 gets wrong.
@@ -8,12 +17,17 @@ gets wrong.
 
 Purpose: answer format questions before committing to a full shoot.
 
+- [ ] Friend's device model confirmed as Pro/Pro Max via Settings -> General -> About.
+      A base iPhone has no LiDAR and the tier is simply not capturable on it.
 - [ ] Record3D installed on friend's iPhone, `.r3d` export tested on ONE short clip
 - [ ] File gets off the phone: Files -> Drive/iCloud -> pulled down on the laptop (no AirDrop)
 - [ ] `.r3d` opens with the `record3d` Python library on Windows; depth, pose and intrinsics
       all readable. If this fails, fix it now, not at hour 20.
 - [ ] One room, all 3 tiers, scale card in frame, quick tape measurements for a sanity check
 - [ ] Confirm Record3D's free-tier clip length limit is long enough for a room walkthrough
+- [ ] If `.r3d` export is locked or capped: fall back to 3D Scanner App (Laan Labs, free),
+      Export -> All Data, and find that out NOW rather than on shoot day
+- [ ] Scale card printed at 100% and verified against a tape using the ruler on the card
 
 ## Session 2 — Full benchmark (once geometry stage runs on the probe data)
 

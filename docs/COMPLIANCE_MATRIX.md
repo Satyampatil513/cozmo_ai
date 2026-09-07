@@ -5,10 +5,20 @@ Requirement -> path -> artifact -> status. Status is DONE, PARTIAL, or NOT BUILT
 
 ## Part 1: capture
 
+Capture route is **Route 2, stock capture**: native iOS Camera for photo and video, Record3D
+for LiDAR, driven by a one-page protocol. No custom iOS app, so there is no TestFlight build
+to install and install time is whatever the App Store takes.
+
+Hardware is a base iPhone 17 (no LiDAR - photo and video tiers) plus a borrowed Pro-class
+device for the LiDAR tier, both capturing the same rooms of one 3BHK.
+
 | # | Requirement | Path | Artifact | Status |
 |---|---|---|---|---|
-| 1.1 | Capture route declared (Route 2) | docs/CAPTURE_PROTOCOL.md | one-page protocol | PARTIAL |
-| 1.2 | Device matrix | docs/DEVICE_MATRIX.md | table | PARTIAL |
+| 1.1 | Capture route declared (Route 2) | docs/CAPTURE_PROTOCOL.md | one-page protocol v0.3 | DONE |
+| 1.1a | Scale card the protocol depends on | assets/scale_card_A4.pdf, scripts/make_scale_card.py | printable A4 + sidecar | DONE |
+| 1.1b | Operator-facing shot lists | docs/capture/ | 3 briefs | DONE |
+| 1.2 | Device matrix | docs/DEVICE_MATRIX.md | table | PARTIAL - accuracy columns unmeasured |
+| 1.2a | LiDAR tier fails loudly on non-Pro device | pipeline/capture/lidar.py | guard + test | NOT BUILT |
 | 1.3 | Photo tier, 2 to 8 stills, no depth, no poses | pipeline/capture/photo.py | loader | NOT BUILT |
 | 1.4 | Video tier | pipeline/capture/video.py | loader | NOT BUILT |
 | 1.5 | LiDAR tier, depth + poses + intrinsics | pipeline/capture/lidar.py | loader | NOT BUILT |
@@ -38,7 +48,8 @@ Requirement -> path -> artifact -> status. Status is DONE, PARTIAL, or NOT BUILT
 | 2.14 | Furnished room, staged damage, 2 classes | benchmark/raw/ | raw data | NOT BUILT |
 | 2.15 | Same rooms at all 3 tiers | benchmark/raw/ | raw data | NOT BUILT |
 | 2.16 | One room captured twice, same tier | benchmark/raw/ | raw data | NOT BUILT |
-| 2.17 | Tape/laser ground truth | benchmark/ground_truth/ | CSV | NOT BUILT |
+| 2.17 | Tape/laser ground truth | benchmark/ground_truth/ | 4 CSVs, unfilled | PARTIAL - sheets ready, values pending capture |
+| 2.17a | Cross-room spans, for scoring the drift ablation | benchmark/ground_truth/spans.csv | CSV | PARTIAL - sheet ready |
 | 2.18 | Gate: opening widths, detection scored | benchmark/scripts/gates.py | report row | NOT BUILT |
 | 2.19 | Gate: ceiling height + spread | benchmark/scripts/gates.py | report row | NOT BUILT |
 | 2.20 | Gate: repeatability | benchmark/scripts/gates.py | report row | NOT BUILT |
@@ -56,6 +67,7 @@ Requirement -> path -> artifact -> status. Status is DONE, PARTIAL, or NOT BUILT
 | 4.3 | After run, regenerable | benchmark/results/after/ | outputs | NOT BUILT |
 | 4.4 | Readable diff | benchmark/results/fix_diff.md | diff | NOT BUILT |
 | 5.1 | Commit history | .git | log | IN PROGRESS |
+| D.0 | Capture sessions executed | benchmark/raw/ | media | NOT BUILT - blocked on the shoot |
 | D.3 | README, fresh machine to running in 15 min | README.md | doc | PARTIAL |
 | D.4 | Reproduction bundle | docs/REPRODUCTION.md | doc + script | NOT BUILT |
 | D.7 | Technical report, max 6 pages | docs/TECHNICAL_REPORT.md | doc | NOT BUILT |
