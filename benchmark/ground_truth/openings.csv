@@ -1,0 +1,10 @@
+room_id,opening_id,opening_type,connects_to,width_m,height_m,sill_height_m,width_m_pass2,tool,measured_at,notes
+room_01_living,d1,door,room_05_hall,,,,,laser,,measure at the frame, not the leaf
+room_01_living,win1,window,,,,,,laser,,measure at the frame, not the leaf
+room_02_bed_master,d1,door,room_05_hall,,,,,laser,,measure at the frame, not the leaf
+room_02_bed_master,win1,window,,,,,,laser,,measure at the frame, not the leaf
+room_03_bed_two,d1,door,room_05_hall,,,,,laser,,measure at the frame, not the leaf
+room_03_bed_two,win1,window,,,,,,laser,,measure at the frame, not the leaf
+room_04_bed_three,d1,door,room_05_hall,,,,,laser,,measure at the frame, not the leaf
+room_04_bed_three,win1,window,,,,,,laser,,measure at the frame, not the leaf
+room_05_hall,d_main,door,exterior,,,,,laser,,measure at the frame, not the leaf

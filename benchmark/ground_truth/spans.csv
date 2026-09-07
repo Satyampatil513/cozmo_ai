@@ -1,0 +1,4 @@
+span_id,from_room,from_reference,to_room,to_reference,value_m,tool,measured_at,notes
+span_01,room_01_living,far wall,room_05_hall,far wall,,laser,,overall span - per-room truth cannot catch accumulated drift
+span_02,room_02_bed_master,far wall,room_04_bed_three,far wall,,laser,,longest chain through the connector
+span_03,room_05_hall,one end,room_05_hall,other end,,laser,,connector length end to end

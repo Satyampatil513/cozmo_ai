@@ -1,0 +1,3 @@
+room_id,damage_id,damage_class,surface_id,long_axis_m,short_axis_m,staged,evidence_photo,concealed_rule_fired,tool,measured_at,notes
+room_01_living,dmg1,,,,,no,,,laser,,furnished room - needs 2 classes minimum
+room_01_living,dmg2,,,,,no,,,laser,,second class in the SAME furnished room
