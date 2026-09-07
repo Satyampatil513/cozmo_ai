@@ -253,8 +253,15 @@ def _soft(x: float, centre: float, width: float) -> float:
     return float(np.exp(-(((x - centre) / width) ** 2)))
 
 
+# Signals available to the joint selector. Exposed as a set so the benchmark can ablate one
+# and show what it contributes, rather than asserting that each term earns its place.
+ALL_SIGNALS = ("support", "parallelism", "horizontality", "separation", "bounding", "camera")
+
+
 def select_floor_ceiling(planes: list[Plane], gravity: np.ndarray, points: np.ndarray,
-                         camera_at_origin: bool = True
+                         camera_at_origin: bool = True,
+                         selector: str = "joint",
+                         signals: tuple[str, ...] = ALL_SIGNALS,
                          ) -> tuple[Plane | None, Plane | None, float]:
     """Choose the floor/ceiling pair *jointly*, by scoring every candidate pair.
 
@@ -281,6 +288,16 @@ def select_floor_ceiling(planes: list[Plane], gravity: np.ndarray, points: np.nd
     together, and a weighted sum lets one very large plane outvote a hard geometric
     contradiction.
 
+    Measured contribution, from benchmark/results/fix_loop_photo.md. An earlier version of
+    this docstring claimed `bounding` carried the fix. The ablation says otherwise and the
+    claim was wrong: `separation` is the load-bearing term, reaching -2.1% mean with 1
+    catastrophic frame on its own, where scoring every pair uniformly reproduces the baseline
+    exactly (-12.2%, 3 catastrophic). Leave-one-out is degenerate - removing any single term
+    changes nothing, because the remaining five agree on the same argmax - so the terms are
+    kept for robustness on captures unlike this one, not because each is individually
+    demonstrated necessary here. Said plainly because the alternative is a plausible story
+    the evidence does not support.
+
     Returns (floor, ceiling, score). Score is 0 when no pair is defensible, and the caller is
     expected to abstain rather than report.
     """
@@ -292,9 +309,20 @@ def select_floor_ceiling(planes: list[Plane], gravity: np.ndarray, points: np.nd
         return (horiz[0] if horiz else None), None, 0.0
 
     height = {id(p): float(np.mean(points[p.inliers] @ g)) for p in horiz}
+
+    if selector == "largest":
+        # Legacy baseline, kept so the fix loop's "before" run stays regenerable from the
+        # same raw inputs rather than surviving only as numbers in a report. This is the rule
+        # that reported ceilings of 0.44m: take the two largest horizontal planes and call the
+        # lower one the floor. Never the default.
+        big = sorted(horiz, key=lambda p: -p.n_inliers)[:2]
+        lo, hi = sorted(big, key=lambda p: height[id(p)])
+        return lo, hi, 1.0
+
     hp = points @ g
     total = max(1, len(points))
     saturate = 0.15 * total
+    use = set(signals)
 
     best = None
     for f in horiz:
@@ -303,17 +331,22 @@ def select_floor_ceiling(planes: list[Plane], gravity: np.ndarray, points: np.nd
                 continue
             sep = height[id(c)] - height[id(f)]
 
-            s_support = min(1.0, (f.n_inliers + c.n_inliers) / saturate)
-            s_parallel = abs(float(f.normal @ c.normal))
-            s_horiz = min(abs(float(f.normal @ g)), abs(float(c.normal @ g)))
-            s_sep = _soft(sep, *SEP_PRIOR_M)
+            s_support = (min(1.0, (f.n_inliers + c.n_inliers) / saturate)
+                         if "support" in use else 1.0)
+            s_parallel = abs(float(f.normal @ c.normal)) if "parallelism" in use else 1.0
+            s_horiz = (min(abs(float(f.normal @ g)), abs(float(c.normal @ g)))
+                       if "horizontality" in use else 1.0)
+            s_sep = _soft(sep, *SEP_PRIOR_M) if "separation" in use else 1.0
 
-            below = float(np.mean(hp < height[id(f)] - BOUND_TOL_M))
-            above = float(np.mean(hp > height[id(c)] + BOUND_TOL_M))
-            s_bound = (1.0 - below) * (1.0 - above)
+            if "bounding" in use:
+                below = float(np.mean(hp < height[id(f)] - BOUND_TOL_M))
+                above = float(np.mean(hp > height[id(c)] + BOUND_TOL_M))
+                s_bound = (1.0 - below) * (1.0 - above)
+            else:
+                s_bound = 1.0
 
             s_cam = 1.0
-            if camera_at_origin:
+            if camera_at_origin and "camera" in use:
                 # Points are in the camera frame with the camera at the origin, so the floor
                 # sits at negative height along gravity and the ceiling at positive.
                 cam_h = -height[id(f)]
@@ -332,7 +365,9 @@ def select_floor_ceiling(planes: list[Plane], gravity: np.ndarray, points: np.nd
 
 
 def classify(planes: list[Plane], gravity: np.ndarray, points: np.ndarray,
-             camera_at_origin: bool = True
+             camera_at_origin: bool = True,
+             selector: str = "joint",
+             signals: tuple[str, ...] = ALL_SIGNALS,
              ) -> tuple[list[Plane], np.ndarray, float]:
     """Label each plane floor / ceiling / wall, orient gravity up, and score the choice.
 
@@ -350,7 +385,8 @@ def classify(planes: list[Plane], gravity: np.ndarray, points: np.ndarray,
         c = abs(float(p.normal @ gravity))
         p.kind = "wall" if c < perp else ("horizontal" if c > par else "unknown")
 
-    floor, ceiling, score = select_floor_ceiling(planes, gravity, points, camera_at_origin)
+    floor, ceiling, score = select_floor_ceiling(
+        planes, gravity, points, camera_at_origin, selector=selector, signals=signals)
     if floor is not None:
         floor.kind = "floor"
     if ceiling is not None:
@@ -457,7 +493,9 @@ MIN_SELECTION_SCORE = 0.02
 def fit_floor_ceiling(points, normals=None, threshold: float = 0.03,
                       gravity_prior: np.ndarray | None = CAMERA_UP,
                       camera_at_origin: bool = True,
-                      min_score: float = MIN_SELECTION_SCORE):
+                      min_score: float = MIN_SELECTION_SCORE,
+                      selector: str = "joint",
+                      signals: tuple[str, ...] = ALL_SIGNALS):
     """Point cloud in, (gravity, floor, ceiling, walls, score) out.
 
     Returns ceiling=None when the floor/ceiling selection cannot be defended, so the caller
@@ -469,7 +507,8 @@ def fit_floor_ceiling(points, normals=None, threshold: float = 0.03,
     if not planes:
         return None
     gravity = estimate_gravity(planes, prior=gravity_prior)
-    planes, gravity, score = classify(planes, gravity, points, camera_at_origin)
+    planes, gravity, score = classify(planes, gravity, points, camera_at_origin,
+                                      selector=selector, signals=signals)
     planes = regularize(planes, gravity, points)
     floor = next((p for p in planes if p.kind == "floor"), None)
     ceiling = next((p for p in planes if p.kind == "ceiling"), None)

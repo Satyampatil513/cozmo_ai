@@ -12,3 +12,4 @@ torchvision>=0.29
 timm>=1.0
 mmengine>=0.10
 mmcv-lite>=2.2
+pyliblzfse>=0.4

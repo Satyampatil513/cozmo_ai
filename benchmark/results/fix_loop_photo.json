@@ -1,0 +1,3163 @@
+{
+  "ground_truth_ceiling_m": 2.64,
+  "backend": "metric3d_v2",
+  "frames": 28,
+  "depth_seconds": 78.0,
+  "cache_hits": 28,
+  "summary": {
+    "largest": {
+      "frames": 28,
+      "reported": 28,
+      "abstained": 0,
+      "mean_err_pct": -12.205357142857142,
+      "median_err_pct": -8.38,
+      "sd_pct": 24.091731018004445,
+      "within_8pct": 35.714285714285715,
+      "catastrophic": 3,
+      "worst_err_pct": -83.54
+    },
+    "joint": {
+      "frames": 28,
+      "reported": 25,
+      "abstained": 3,
+      "mean_err_pct": 1.7983999999999998,
+      "median_err_pct": 3.16,
+      "sd_pct": 10.622125467155808,
+      "within_8pct": 40.0,
+      "catastrophic": 0,
+      "worst_err_pct": -19.09
+    },
+    "joint_no_support": {
+      "frames": 28,
+      "reported": 25,
+      "abstained": 3,
+      "mean_err_pct": 1.7983999999999998,
+      "median_err_pct": 3.16,
+      "sd_pct": 10.622125467155808,
+      "within_8pct": 40.0,
+      "catastrophic": 0,
+      "worst_err_pct": -19.09
+    },
+    "joint_no_parallelism": {
+      "frames": 28,
+      "reported": 25,
+      "abstained": 3,
+      "mean_err_pct": 1.7983999999999998,
+      "median_err_pct": 3.16,
+      "sd_pct": 10.622125467155808,
+      "within_8pct": 40.0,
+      "catastrophic": 0,
+      "worst_err_pct": -19.09
+    },
+    "joint_no_horizontality": {
+      "frames": 28,
+      "reported": 25,
+      "abstained": 3,
+      "mean_err_pct": 1.7983999999999998,
+      "median_err_pct": 3.16,
+      "sd_pct": 10.622125467155808,
+      "within_8pct": 40.0,
+      "catastrophic": 0,
+      "worst_err_pct": -19.09
+    },
+    "joint_no_separation": {
+      "frames": 28,
+      "reported": 25,
+      "abstained": 3,
+      "mean_err_pct": 1.7983999999999998,
+      "median_err_pct": 3.16,
+      "sd_pct": 10.622125467155808,
+      "within_8pct": 40.0,
+      "catastrophic": 0,
+      "worst_err_pct": -19.09
+    },
+    "joint_no_bounding": {
+      "frames": 28,
+      "reported": 25,
+      "abstained": 3,
+      "mean_err_pct": 1.4344,
+      "median_err_pct": 3.0,
+      "sd_pct": 10.587334350061871,
+      "within_8pct": 40.0,
+      "catastrophic": 0,
+      "worst_err_pct": -19.09
+    },
+    "joint_no_camera": {
+      "frames": 28,
+      "reported": 25,
+      "abstained": 3,
+      "mean_err_pct": 1.7983999999999998,
+      "median_err_pct": 3.16,
+      "sd_pct": 10.622125467155808,
+      "within_8pct": 40.0,
+      "catastrophic": 0,
+      "worst_err_pct": -19.09
+    },
+    "joint_none": {
+      "frames": 28,
+      "reported": 28,
+      "abstained": 0,
+      "mean_err_pct": -12.205357142857142,
+      "median_err_pct": -8.38,
+      "sd_pct": 24.091731018004445,
+      "within_8pct": 35.714285714285715,
+      "catastrophic": 3,
+      "worst_err_pct": -83.54
+    },
+    "joint_only_support": {
+      "frames": 28,
+      "reported": 28,
+      "abstained": 0,
+      "mean_err_pct": -12.205357142857142,
+      "median_err_pct": -8.38,
+      "sd_pct": 24.091731018004445,
+      "within_8pct": 35.714285714285715,
+      "catastrophic": 3,
+      "worst_err_pct": -83.54
+    },
+    "joint_only_parallelism": {
+      "frames": 28,
+      "reported": 28,
+      "abstained": 0,
+      "mean_err_pct": -16.571785714285713,
+      "median_err_pct": -6.385,
+      "sd_pct": 31.219479387712344,
+      "within_8pct": 32.142857142857146,
+      "catastrophic": 6,
+      "worst_err_pct": -83.54
+    },
+    "joint_only_horizontality": {
+      "frames": 28,
+      "reported": 28,
+      "abstained": 0,
+      "mean_err_pct": -18.354285714285716,
+      "median_err_pct": -7.375,
+      "sd_pct": 31.972749158861994,
+      "within_8pct": 35.714285714285715,
+      "catastrophic": 6,
+      "worst_err_pct": -83.54
+    },
+    "joint_only_separation": {
+      "frames": 28,
+      "reported": 26,
+      "abstained": 2,
+      "mean_err_pct": -2.1288461538461543,
+      "median_err_pct": -0.45,
+      "sd_pct": 15.785547510526856,
+      "within_8pct": 38.46153846153847,
+      "catastrophic": 1,
+      "worst_err_pct": -63.39
+    },
+    "joint_only_bounding": {
+      "frames": 28,
+      "reported": 28,
+      "abstained": 0,
+      "mean_err_pct": -6.402857142857142,
+      "median_err_pct": 1.95,
+      "sd_pct": 25.8621002153928,
+      "within_8pct": 35.714285714285715,
+      "catastrophic": 3,
+      "worst_err_pct": -83.54
+    },
+    "joint_only_camera": {
+      "frames": 28,
+      "reported": 28,
+      "abstained": 0,
+      "mean_err_pct": -6.402857142857142,
+      "median_err_pct": 1.95,
+      "sd_pct": 25.8621002153928,
+      "within_8pct": 35.714285714285715,
+      "catastrophic": 3,
+      "worst_err_pct": -83.54
+    }
+  },
+  "selector_seconds": {
+    "largest": 0.28,
+    "joint": 0.33,
+    "joint_no_support": 0.28,
+    "joint_no_parallelism": 0.26,
+    "joint_no_horizontality": 0.33,
+    "joint_no_separation": 0.32,
+    "joint_no_bounding": 0.31,
+    "joint_no_camera": 0.27,
+    "joint_none": 0.18,
+    "joint_only_support": 0.19,
+    "joint_only_parallelism": 0.15,
+    "joint_only_horizontality": 0.26,
+    "joint_only_separation": 0.19,
+    "joint_only_bounding": 0.26,
+    "joint_only_camera": 0.18
+  },
+  "per_frame": {
+    "largest": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": 0.9665,
+        "err_pct": -63.39,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 1.9154,
+        "err_pct": -27.45,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.3447,
+        "err_pct": -11.18,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.3042,
+        "err_pct": -12.72,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.2374,
+        "err_pct": -15.25,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": 0.599,
+        "err_pct": -77.31,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 2.4034,
+        "err_pct": -8.96,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.2992,
+        "err_pct": -12.91,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": 0.4347,
+        "err_pct": -83.54,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 1.0
+      }
+    ],
+    "joint": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.976
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.82171
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 0.83975
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.87189
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.80248
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.75063
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00024
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 2.9554,
+        "err_pct": 11.95,
+        "score": 0.17648
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.70642
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.60962
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.80456
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 0.88086
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.9005,
+        "err_pct": 9.87,
+        "score": 0.61268
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.60441
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 0.09608
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.301
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.28242
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.47141
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.41909
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.1876
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 2e-05
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.23792
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.15156
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 3.1378,
+        "err_pct": 18.86,
+        "score": 0.48601
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.36893
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.9057,
+        "err_pct": 10.07,
+        "score": 0.81176
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 1e-05
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.24102
+      }
+    ],
+    "joint_no_support": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.976
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.82171
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 0.83975
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.87189
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.80248
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.75063
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00037
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 2.9554,
+        "err_pct": 11.95,
+        "score": 0.27359
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.70642
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.61074
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.80456
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 0.92301
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.9005,
+        "err_pct": 9.87,
+        "score": 0.82919
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.60441
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 0.09608
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.301
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.28242
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.47141
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.41909
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.1876
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 4e-05
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.23792
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.15156
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 3.1378,
+        "err_pct": 18.86,
+        "score": 0.48601
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.36893
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.9057,
+        "err_pct": 10.07,
+        "score": 0.93623
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 2e-05
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.24102
+      }
+    ],
+    "joint_no_parallelism": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.9761
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.82174
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 0.83977
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.87224
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.80326
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.75065
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00024
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 2.9554,
+        "err_pct": 11.95,
+        "score": 0.17709
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.70651
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.60964
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.8082
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 0.88096
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.9005,
+        "err_pct": 9.87,
+        "score": 0.61308
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.6045
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 0.09744
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.30422
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.28255
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.47166
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.41917
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.18808
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 2e-05
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.23818
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.15165
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 3.1378,
+        "err_pct": 18.86,
+        "score": 0.48697
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.36904
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.9057,
+        "err_pct": 10.07,
+        "score": 0.81214
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 1e-05
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.24178
+      }
+    ],
+    "joint_no_horizontality": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.9761
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.82174
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 0.83977
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.87224
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.80326
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.75065
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00024
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 2.9554,
+        "err_pct": 11.95,
+        "score": 0.17709
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.70651
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.60964
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.8082
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 0.88215
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.9005,
+        "err_pct": 9.87,
+        "score": 0.61324
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.6045
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 0.09744
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.30422
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.28255
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.47166
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.41917
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.18808
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 2e-05
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.23818
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.15165
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 3.1378,
+        "err_pct": 18.86,
+        "score": 0.48697
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.36904
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.9057,
+        "err_pct": 10.07,
+        "score": 0.81282
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 1e-05
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.24178
+      }
+    ],
+    "joint_no_separation": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.97645
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.85423
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 0.85734
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.8725
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.90546
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.86138
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00992
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 2.9554,
+        "err_pct": 11.95,
+        "score": 0.19128
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.76406
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.61003
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.84524
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 0.92749
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.9005,
+        "err_pct": 9.87,
+        "score": 0.64386
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.63234
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 0.09612
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.33004
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.34839
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.52267
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.51458
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.23824
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00494
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.2596
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.22445
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 3.1378,
+        "err_pct": 18.86,
+        "score": 0.61575
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.43533
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.9057,
+        "err_pct": 10.07,
+        "score": 0.85531
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00843
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.25932
+      }
+    ],
+    "joint_no_bounding": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.9763
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.82206
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.5894,
+        "err_pct": -1.92,
+        "score": 0.84459
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.87253
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.80249
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.75063
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00065
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 2.9554,
+        "err_pct": 11.95,
+        "score": 0.18202
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.71264
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.63839
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.86104
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 0.88086
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.9005,
+        "err_pct": 9.87,
+        "score": 0.61271
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.65187
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 0.10226
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.36031
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.30632
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.47142
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.4629
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.20668
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 8e-05
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.24093
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.16136
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 3.1378,
+        "err_pct": 18.86,
+        "score": 0.48601
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.41646
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.9057,
+        "err_pct": 10.07,
+        "score": 0.81176
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 5e-05
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.25254
+      }
+    ],
+    "joint_no_camera": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.99903
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.96147
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 0.97902
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.99778
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.88455
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.87139
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00589
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 2.9554,
+        "err_pct": 11.95,
+        "score": 0.57301
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.91628
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.95248
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.88142
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 0.90493
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.9005,
+        "err_pct": 9.87,
+        "score": 0.70196
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.88596
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 0.91318
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.74588
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.74671
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.90092
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.7371
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.71112
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00062
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.90301
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.63343
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 3.1378,
+        "err_pct": 18.86,
+        "score": 0.7862
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.75029
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.9057,
+        "err_pct": 10.07,
+        "score": 0.82145
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00042
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.88154
+      }
+    ],
+    "joint_none": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": 0.9665,
+        "err_pct": -63.39,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 1.9154,
+        "err_pct": -27.45,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.3447,
+        "err_pct": -11.18,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.3042,
+        "err_pct": -12.72,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.2374,
+        "err_pct": -15.25,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": 0.599,
+        "err_pct": -77.31,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 2.4034,
+        "err_pct": -8.96,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.2992,
+        "err_pct": -12.91,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": 0.4347,
+        "err_pct": -83.54,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 1.0
+      }
+    ],
+    "joint_only_support": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 1.0
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": 0.9665,
+        "err_pct": -63.39,
+        "score": 0.64922
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 1.9154,
+        "err_pct": -27.45,
+        "score": 0.65967
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.99817
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.3447,
+        "err_pct": -11.18,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.3042,
+        "err_pct": -12.72,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.2374,
+        "err_pct": -15.25,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 1.0
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": 0.599,
+        "err_pct": -77.31,
+        "score": 0.51989
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 2.4034,
+        "err_pct": -8.96,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.2992,
+        "err_pct": -12.91,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": 0.4347,
+        "err_pct": -83.54,
+        "score": 0.82789
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 1.0
+      }
+    ],
+    "joint_only_parallelism": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.9999
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.99996
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 0.99997
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.9996
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.99904
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.99998
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": 0.9665,
+        "err_pct": -63.39,
+        "score": 0.99901
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 1.04,
+        "err_pct": -60.61,
+        "score": 0.9991
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.99987
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.99996
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.99549
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 0.99988
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 0.5963,
+        "err_pct": -77.41,
+        "score": 0.99962
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.99985
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.5521,
+        "err_pct": -3.33,
+        "score": 0.99635
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.98943
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.99954
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.99946
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.99982
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.99746
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": 0.599,
+        "err_pct": -77.31,
+        "score": 0.99902
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.9989
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.9994
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 2.4034,
+        "err_pct": -8.96,
+        "score": 0.99957
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.9997
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 0.6066,
+        "err_pct": -77.02,
+        "score": 0.99963
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": 0.4347,
+        "err_pct": -83.54,
+        "score": 0.99885
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.3047,
+        "err_pct": -12.7,
+        "score": 0.99875
+      }
+    ],
+    "joint_only_horizontality": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.9999
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.99996
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 0.99997
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.9996
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.99904
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.99998
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": 0.9665,
+        "err_pct": -63.39,
+        "score": 0.99901
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 1.9154,
+        "err_pct": -27.45,
+        "score": 0.99849
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.99987
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.99996
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.99549
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 0.5597,
+        "err_pct": -78.8,
+        "score": 0.99924
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 0.5963,
+        "err_pct": -77.41,
+        "score": 0.99962
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.99985
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.5521,
+        "err_pct": -3.33,
+        "score": 0.99635
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.98943
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.99954
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.99946
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.99982
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.99746
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": 0.599,
+        "err_pct": -77.31,
+        "score": 0.99902
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.9989
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.9994
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 2.4034,
+        "err_pct": -8.96,
+        "score": 0.99957
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.9997
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 0.6066,
+        "err_pct": -77.02,
+        "score": 0.99963
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": 0.4347,
+        "err_pct": -83.54,
+        "score": 0.99885
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.99687
+      }
+    ],
+    "joint_only_separation": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.99955
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.96194
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.5894,
+        "err_pct": -1.92,
+        "score": 0.98502
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.9993
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.88627
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.87142
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": 0.9665,
+        "err_pct": -63.39,
+        "score": 0.02448
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 2.9554,
+        "err_pct": 11.95,
+        "score": 0.9226
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.92457
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.99933
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.95187
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 0.94973
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.9005,
+        "err_pct": 9.87,
+        "score": 0.95158
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.95583
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 0.99959
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.91202
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.81064
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.90192
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.81444
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.78743
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.0043
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.91646
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.67524
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 2.4034,
+        "err_pct": -8.96,
+        "score": 0.89708
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.84746
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.9057,
+        "err_pct": 10.07,
+        "score": 0.94908
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": null,
+        "err_pct": null,
+        "score": 0.00177
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.92946
+      }
+    ],
+    "joint_only_bounding": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.99969
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.99958
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 0.99959
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.99927
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.99998
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 1.0
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": 0.9665,
+        "err_pct": -63.39,
+        "score": 0.37158
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 2.9554,
+        "err_pct": 11.95,
+        "score": 0.96955
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.99128
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.95494
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.9344
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 1.0
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.9005,
+        "err_pct": 9.87,
+        "score": 0.99995
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.92719
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 0.93958
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.83541
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.92198
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.99997
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.90537
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.90769
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": 0.599,
+        "err_pct": -77.31,
+        "score": 0.27712
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.9875
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.93922
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 3.1378,
+        "err_pct": 18.86,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.88587
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.9057,
+        "err_pct": 10.07,
+        "score": 1.0
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": 0.4347,
+        "err_pct": -83.54,
+        "score": 0.29029
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.9544
+      }
+    ],
+    "joint_only_camera": [
+      {
+        "room": "Hallway",
+        "frame": "IMG_0429.jpeg",
+        "ceiling_m": 2.7192,
+        "err_pct": 3.0,
+        "score": 0.97695
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0430.jpeg",
+        "ceiling_m": 2.8773,
+        "err_pct": 8.99,
+        "score": 0.85465
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0431.jpeg",
+        "ceiling_m": 2.8296,
+        "err_pct": 7.18,
+        "score": 0.85774
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0432.jpeg",
+        "ceiling_m": 2.7238,
+        "err_pct": 3.17,
+        "score": 0.87383
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0433.jpeg",
+        "ceiling_m": 3.0127,
+        "err_pct": 14.12,
+        "score": 0.90722
+      },
+      {
+        "room": "Hallway",
+        "frame": "IMG_0434.jpeg",
+        "ceiling_m": 3.0339,
+        "err_pct": 14.92,
+        "score": 0.86142
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0435.jpeg",
+        "ceiling_m": 0.9665,
+        "err_pct": -63.39,
+        "score": 0.0412
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0436.jpeg",
+        "ceiling_m": 2.9554,
+        "err_pct": 11.95,
+        "score": 0.30799
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0437.jpeg",
+        "ceiling_m": 2.952,
+        "err_pct": 11.82,
+        "score": 0.77097
+      },
+      {
+        "room": "Kitchen",
+        "frame": "IMG_0438.jpeg",
+        "ceiling_m": 2.7233,
+        "err_pct": 3.16,
+        "score": 0.64004
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0439.jpeg",
+        "ceiling_m": 2.556,
+        "err_pct": -3.18,
+        "score": 0.91279
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0440.jpeg",
+        "ceiling_m": 2.9044,
+        "err_pct": 10.02,
+        "score": 0.9734
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0443.jpeg",
+        "ceiling_m": 2.9005,
+        "err_pct": 9.87,
+        "score": 0.87281
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0444.jpeg",
+        "ceiling_m": 2.5087,
+        "err_pct": -4.97,
+        "score": 0.6822
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0445.jpeg",
+        "ceiling_m": 2.6639,
+        "err_pct": 0.9,
+        "score": 0.10522
+      },
+      {
+        "room": "Room 1",
+        "frame": "IMG_0446.jpeg",
+        "ceiling_m": 2.5926,
+        "err_pct": -1.8,
+        "score": 0.40355
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0447.jpeg",
+        "ceiling_m": 2.2876,
+        "err_pct": -13.35,
+        "score": 0.37822
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0448.jpeg",
+        "ceiling_m": 2.9892,
+        "err_pct": 13.23,
+        "score": 0.52325
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0449.jpeg",
+        "ceiling_m": 2.2923,
+        "err_pct": -13.17,
+        "score": 0.56857
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0450.jpeg",
+        "ceiling_m": 2.26,
+        "err_pct": -14.39,
+        "score": 0.26381
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0451.jpeg",
+        "ceiling_m": 0.599,
+        "err_pct": -77.31,
+        "score": 0.03435
+      },
+      {
+        "room": "Room 2",
+        "frame": "IMG_0452.jpeg",
+        "ceiling_m": 2.4342,
+        "err_pct": -7.8,
+        "score": 0.26347
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0453.jpeg",
+        "ceiling_m": 2.136,
+        "err_pct": -19.09,
+        "score": 0.23926
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0454.jpeg",
+        "ceiling_m": 3.1378,
+        "err_pct": 18.86,
+        "score": 0.61818
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0456.jpeg",
+        "ceiling_m": 2.3339,
+        "err_pct": -11.6,
+        "score": 0.49171
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0457.jpeg",
+        "ceiling_m": 2.9057,
+        "err_pct": 10.07,
+        "score": 0.9882
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0458.jpeg",
+        "ceiling_m": 0.4347,
+        "err_pct": -83.54,
+        "score": 0.03516
+      },
+      {
+        "room": "Room 3",
+        "frame": "IMG_0459.jpeg",
+        "ceiling_m": 2.4566,
+        "err_pct": -6.95,
+        "score": 0.27341
+      }
+    ]
+  }
+}
