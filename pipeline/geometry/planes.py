@@ -1,16 +1,338 @@
-"""Floor and ceiling plane extraction, and ceiling height.
+"""Plane extraction, gravity estimation, and floor/ceiling/wall classification.
 
-Method: gravity-aligned point cloud (ARKit gives gravity on the LiDAR tier; on photo/video
-the dominant horizontal plane normal is estimated from the pointmap), then a height histogram
-with RANSAC plane fits on the two dominant horizontal bands. Ceiling height is the plane
-separation, measured at multiple sample points so the report can state spread as well as value.
+This is the deterministic half of the pipeline and it is where the accuracy comes from.
+Models upstream supply a point cloud (LiDAR depth, or metric monocular depth lifted through
+intrinsics); everything here is geometry with no learned component, which is both more
+accurate than asking a network for a dimension and defensible line by line.
 
-The brief scores repeatable-but-biased separately from unrepeatable, so this module reports
-both a value and a within-capture spread.
+Written against numpy rather than Open3D. Open3D publishes no wheels for the Python we run
+on, and a RANSAC plane fit is fifty lines - taking the dependency would buy nothing and cost
+us an explanation.
 
-NOT BUILT.
+Regularisation policy, which is a deliberate choice and not an oversight: planes are snapped
+to vertical/horizontal and to a shared Manhattan frame **only when they are already within a
+few degrees of it**. A room that is genuinely not rectangular must come out not rectangular.
+Forcing right angles would flatter our own benchmark - most rooms are boxes - and then fail
+in front of Cozmo on the one room that is not.
 """
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+import numpy as np
+
+# A plane is kept if it explains at least this fraction of the points it was fitted from.
+MIN_INLIER_FRACTION = 0.02
+MIN_INLIER_COUNT = 200
+
+# Angular tolerances, degrees.
+AXIS_TOL_DEG = 15.0          # how far from gravity a plane can be and still count horizontal
+SNAP_TOL_DEG = 5.0           # verticality / horizontality: gravity is well determined
+MANHATTAN_TOL_DEG = 2.0      # right angles: much tighter, and see regularize() for why
 
 
-def fit_floor_ceiling(points, normals=None):
-    raise NotImplementedError
+@dataclass
+class Plane:
+    """n . x + d = 0, with n a unit normal."""
+    normal: np.ndarray
+    d: float
+    inliers: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=int))
+    kind: str = "unknown"            # floor | ceiling | wall | unknown
+    snapped: bool = False            # was this regularised, or left as fitted
+
+    @property
+    def n_inliers(self) -> int:
+        return int(self.inliers.size)
+
+    def distance(self, points: np.ndarray) -> np.ndarray:
+        """Signed point-plane distance."""
+        return points @ self.normal + self.d
+
+    def refit(self, points: np.ndarray) -> "Plane":
+        """Total-least-squares refit on the current inliers.
+
+        RANSAC's winning hypothesis comes from a minimal sample, so it is a consistent but
+        noisy estimate. Refitting on every inlier is what actually buys the precision.
+        """
+        if self.inliers.size < 3:
+            return self
+        p = points[self.inliers]
+        c = p.mean(axis=0)
+        _, _, vt = np.linalg.svd(p - c, full_matrices=False)
+        n = vt[-1]
+        n = n / np.linalg.norm(n)
+        if n @ self.normal < 0:          # keep the original orientation
+            n = -n
+        return Plane(n, float(-n @ c), self.inliers, self.kind, self.snapped)
+
+
+def _plane_from_sample(pts: np.ndarray) -> tuple[np.ndarray, float] | None:
+    v1, v2 = pts[1] - pts[0], pts[2] - pts[0]
+    n = np.cross(v1, v2)
+    ln = np.linalg.norm(n)
+    if ln < 1e-9:
+        return None
+    n = n / ln
+    return n, float(-n @ pts[0])
+
+
+def ransac_plane(
+    points: np.ndarray,
+    threshold: float,
+    normals: np.ndarray | None = None,
+    iters: int = 400,
+    rng: np.random.Generator | None = None,
+    normal_tol_deg: float = 20.0,
+) -> Plane | None:
+    """Single dominant plane by RANSAC.
+
+    When per-point normals are available (Metric3D predicts them alongside depth, and LiDAR
+    gives them cheaply from the depth gradient) a hypothesis needs only **one** sample point
+    rather than three, since the point and its normal already define a plane. That collapses
+    the sample size from 3 to 1, which raises the probability that a hypothesis is
+    outlier-free from p^3 to p, and it lets us reject inliers whose surface orientation
+    disagrees with the plane - a point that happens to lie on the wall plane but belongs to a
+    table edge is excluded on orientation even though its distance passes.
+    """
+    n_pts = len(points)
+    if n_pts < 3:
+        return None
+    rng = rng or np.random.default_rng(0)
+    cos_tol = np.cos(np.radians(normal_tol_deg))
+
+    best_mask, best_count = None, 0
+    for _ in range(iters):
+        if normals is not None:
+            i = int(rng.integers(n_pts))
+            n = normals[i]
+            nn = np.linalg.norm(n)
+            if nn < 1e-9:
+                continue
+            n = n / nn
+            d = float(-n @ points[i])
+        else:
+            idx = rng.choice(n_pts, 3, replace=False)
+            got = _plane_from_sample(points[idx])
+            if got is None:
+                continue
+            n, d = got
+
+        mask = np.abs(points @ n + d) < threshold
+        if normals is not None:
+            mask &= np.abs(normals @ n) > cos_tol
+        c = int(mask.sum())
+        if c > best_count:
+            best_count, best_mask = c, mask
+
+    if best_mask is None or best_count < 3:
+        return None
+    idx = np.flatnonzero(best_mask)
+    seed = Plane(np.zeros(3), 0.0, idx)
+    # Recover an orientation for refit() to preserve, from the winning hypothesis.
+    p = points[idx]
+    c = p.mean(axis=0)
+    _, _, vt = np.linalg.svd(p - c, full_matrices=False)
+    seed.normal = vt[-1] / np.linalg.norm(vt[-1])
+    seed.d = float(-seed.normal @ c)
+    return seed
+
+
+def extract_planes(
+    points: np.ndarray,
+    normals: np.ndarray | None = None,
+    threshold: float = 0.03,
+    max_planes: int = 12,
+    rng: np.random.Generator | None = None,
+) -> list[Plane]:
+    """Iteratively pull out dominant planes, removing inliers as we go.
+
+    `threshold` is the inlier band in metres and should track the noise of the source:
+    ~1-2 cm for LiDAR, ~3-5 cm for lifted monocular depth. Too tight and a real wall
+    fragments into several planes; too loose and a wall swallows the furniture in front
+    of it.
+    """
+    rng = rng or np.random.default_rng(0)
+    remaining = np.arange(len(points))
+    out: list[Plane] = []
+    floor_count = max(MIN_INLIER_COUNT, int(MIN_INLIER_FRACTION * len(points)))
+
+    for _ in range(max_planes):
+        if remaining.size < floor_count:
+            break
+        sub = points[remaining]
+        sub_n = normals[remaining] if normals is not None else None
+        pl = ransac_plane(sub, threshold, sub_n, rng=rng)
+        if pl is None or pl.n_inliers < floor_count:
+            break
+        # Map indices back to the original cloud, then refit on all of them.
+        pl.inliers = remaining[pl.inliers]
+        pl = pl.refit(points)
+        out.append(pl)
+        remaining = np.setdiff1d(remaining, pl.inliers, assume_unique=False)
+
+    return sorted(out, key=lambda p: -p.n_inliers)
+
+
+def estimate_gravity(planes: list[Plane]) -> np.ndarray:
+    """Find the up axis from the planes themselves.
+
+    On the LiDAR tier ARKit hands us gravity directly and this is a cross-check. On photo and
+    video there is no IMU in the file, so it has to be inferred.
+
+    The method is a small Manhattan-frame vote: every plane normal is a candidate up axis,
+    and each candidate scores the inlier mass of all planes that are either parallel to it
+    (floors, ceilings, tabletops) or perpendicular to it (walls). A room's true vertical is
+    the direction that makes the most surfaces axis-aligned, which is exactly what that
+    maximises. Weighting by inlier count rather than plane count stops a cluster of small
+    clutter planes outvoting the floor.
+    """
+    if not planes:
+        return np.array([0.0, 0.0, 1.0])
+
+    par = np.cos(np.radians(AXIS_TOL_DEG))
+    perp = np.sin(np.radians(AXIS_TOL_DEG))
+    best, best_score = planes[0].normal, -1.0
+
+    for cand in planes:
+        g = cand.normal
+        score = 0.0
+        for p in planes:
+            c = abs(float(p.normal @ g))
+            if c > par or c < perp:
+                score += p.n_inliers
+        if score > best_score:
+            best, best_score = g, score
+
+    g = best / np.linalg.norm(best)
+    return g
+
+
+def classify(planes: list[Plane], gravity: np.ndarray, points: np.ndarray
+             ) -> tuple[list[Plane], np.ndarray]:
+    """Label each plane floor / ceiling / wall, and orient gravity so it points up.
+
+    Floor and ceiling are separated by height, not by normal direction. A fitted normal's
+    sign is arbitrary - SVD gives no orientation - so "its normal points up" is not
+    information we actually have, and using it would coin-flip the two apart.
+    """
+    par = np.cos(np.radians(AXIS_TOL_DEG))
+    perp = np.sin(np.radians(AXIS_TOL_DEG))
+
+    for p in planes:
+        c = abs(float(p.normal @ gravity))
+        p.kind = "wall" if c < perp else ("horizontal" if c > par else "unknown")
+
+    horizontal = [p for p in planes if p.kind == "horizontal"]
+    if len(horizontal) >= 2:
+        height = {id(p): float(np.mean(points[p.inliers] @ gravity)) for p in horizontal}
+        # Floor and ceiling are the two largest horizontal planes, which is more robust than
+        # "lowest and highest": in a furnished room the lowest horizontal plane is often a
+        # rug or a mattress, and the highest is often the top of a wardrobe.
+        big = sorted(horizontal, key=lambda p: -p.n_inliers)[:2]
+        lo, hi = sorted(big, key=lambda p: height[id(p)])
+        lo.kind, hi.kind = "floor", "ceiling"
+        if height[id(hi)] < height[id(lo)]:      # gravity was pointing down
+            gravity = -gravity
+    elif horizontal:
+        horizontal[0].kind = "floor"
+
+    return planes, gravity
+
+
+def regularize(planes: list[Plane], gravity: np.ndarray, points: np.ndarray) -> list[Plane]:
+    """Snap planes to vertical/horizontal and a shared Manhattan frame - conservatively.
+
+    Only planes already within SNAP_TOL_DEG of the ideal are moved; everything else is left
+    exactly as fitted.
+
+    That restraint is the whole point. Most rooms are boxes, so hard Manhattan forcing would
+    improve almost every number in our own benchmark and then produce a confidently wrong
+    plan for the first bay window or angled partition Cozmo walks us into. Small residual
+    non-orthogonality is usually real, and snapping it away destroys the thing we are meant
+    to be measuring.
+
+    Every snap re-derives `d` from the plane's own inlier centroid, so rotating the normal
+    pivots the plane about its evidence instead of sliding it through space.
+    """
+    g = gravity / np.linalg.norm(gravity)
+    tol = np.radians(SNAP_TOL_DEG)
+
+    def resnap(pl: Plane, n_new: np.ndarray) -> None:
+        c = points[pl.inliers].mean(axis=0)
+        pl.normal = n_new
+        pl.d = float(-n_new @ c)
+        pl.snapped = True
+
+    walls = [p for p in planes if p.kind == "wall"]
+
+    # Verticality: a wall normal should be perpendicular to gravity.
+    for pl in walls:
+        tilt = abs(np.arcsin(np.clip(abs(float(pl.normal @ g)), -1.0, 1.0)))
+        if tilt < tol:
+            n = pl.normal - (pl.normal @ g) * g
+            ln = np.linalg.norm(n)
+            if ln > 1e-9:
+                resnap(pl, n / ln)
+
+    # Horizontality: floor and ceiling normals should be parallel to gravity.
+    for pl in planes:
+        if pl.kind in ("floor", "ceiling", "horizontal"):
+            ang = np.arccos(np.clip(abs(float(pl.normal @ g)), -1.0, 1.0))
+            if ang < tol:
+                resnap(pl, g if pl.normal @ g > 0 else -g)
+
+    # Manhattan frame: all or nothing, never per wall.
+    #
+    # Deciding this wall by wall is wrong, and measurably so. The reference frame is fitted
+    # as a compromise across the walls, so in a room skewed by theta each wall sits only
+    # theta/2 from that compromise. Judge each wall against it independently and both ends of
+    # a 6.8-degree skew look "within 5 degrees of square", both get pulled onto the grid, and
+    # a room whose real corners are 83 and 97 degrees is reported as a perfect rectangle.
+    # That was the measured behaviour before this changed.
+    #
+    # Orthogonality is a property of the room, not of any single wall, so the whole room has
+    # to qualify: if any wall's residual to the fitted grid exceeds tolerance, the room is not
+    # Manhattan and nothing is snapped. The tolerance is halved relative to SNAP_TOL_DEG for
+    # the same theta/2 reason.
+    if len(walls) >= 2:
+        e1, e2 = _floor_basis(g)
+        az = np.array([np.arctan2(float(pl.normal @ e2), float(pl.normal @ e1)) for pl in walls])
+        w = np.array([pl.n_inliers for pl in walls], dtype=float)
+        # Wall normals are sign-ambiguous and orthogonal walls sit 90 degrees apart, so these
+        # azimuths live on a 90-degree circle. Average them there, via the 4th harmonic.
+        ref = float(np.arctan2(np.sum(w * np.sin(4 * az)), np.sum(w * np.cos(4 * az))) / 4.0)
+        targets = np.array([ref + round((a - ref) / (np.pi / 2)) * (np.pi / 2) for a in az])
+        residuals = np.array([abs(_wrap(a - t)) for a, t in zip(az, targets)])
+
+        if residuals.max() < np.radians(MANHATTAN_TOL_DEG):
+            for pl, t in zip(walls, targets):
+                resnap(pl, np.cos(t) * e1 + np.sin(t) * e2)
+
+    return planes
+
+
+def _wrap(a: float) -> float:
+    return (a + np.pi) % (2 * np.pi) - np.pi
+
+
+def _floor_basis(gravity: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Any orthonormal pair spanning the horizontal plane."""
+    g = gravity / np.linalg.norm(gravity)
+    seed = np.array([1.0, 0.0, 0.0]) if abs(g[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    e1 = seed - (seed @ g) * g
+    e1 /= np.linalg.norm(e1)
+    return e1, np.cross(g, e1)
+
+
+def fit_floor_ceiling(points, normals=None, threshold: float = 0.03):
+    """Convenience entry point: point cloud in, (gravity, floor, ceiling, walls) out."""
+    planes = extract_planes(points, normals, threshold=threshold)
+    if not planes:
+        return None
+    gravity = estimate_gravity(planes)
+    planes, gravity = classify(planes, gravity, points)
+    planes = regularize(planes, gravity, points)
+    floor = next((p for p in planes if p.kind == "floor"), None)
+    ceiling = next((p for p in planes if p.kind == "ceiling"), None)
+    walls = [p for p in planes if p.kind == "wall"]
+    return gravity, floor, ceiling, walls
