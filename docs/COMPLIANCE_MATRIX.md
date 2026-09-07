@@ -18,6 +18,8 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 1.1a | Scale card the protocol depends on | assets/scale_card_A4.pdf, scripts/make_scale_card.py | printable A4 + sidecar | DONE |
 | 1.1b | Operator-facing shot lists | docs/capture/ | 3 briefs | DONE |
 | 1.1c | Capture validator, pre-reconstruction | scripts/validate_capture.py | CLI + exit code | DONE |
+| 1.1d | Photo/video field guide | docs/capture/PHOTO_VIDEO_FIELD_GUIDE.md | procedure | DONE |
+| 1.1e | Remote dev capture brief | docs/capture/REMOTE_DEV_CAPTURE.md | brief | DONE |
 | 1.2 | Device matrix | docs/DEVICE_MATRIX.md | table | PARTIAL - accuracy columns unmeasured |
 | 1.2a | LiDAR tier fails loudly on non-Pro device | pipeline/capture/lidar.py | guard + test | NOT BUILT |
 | 1.3 | Photo tier, 2 to 8 stills, no depth, no poses | pipeline/capture/photo.py | loader | NOT BUILT |
@@ -49,7 +51,7 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 |---|---|---|---|---|
 | 2.13 | 3+ rooms plus connector | benchmark/raw/ | raw data | NOT BUILT |
 | 2.14 | Furnished room, staged damage, 2 classes | benchmark/raw/ | raw data | NOT BUILT |
-| 2.15 | Same rooms at all 3 tiers | benchmark/raw/ | raw data | NOT BUILT |
+| 2.15 | Same rooms at all 3 tiers | benchmark/raw/{photo,video,lidar}/ | raw data | NOT BUILT - blocked on a LiDAR device in the 3BHK |
 | 2.16 | One room captured twice, same tier | benchmark/raw/ | raw data | NOT BUILT |
 | 2.17 | Tape/laser ground truth | benchmark/ground_truth/ | 4 CSVs, unfilled | PARTIAL - sheets ready, values pending capture |
 | 2.17a | Cross-room spans, for scoring the drift ablation | benchmark/ground_truth/spans.csv | CSV | PARTIAL - sheet ready |
