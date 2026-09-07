@@ -1,8 +1,9 @@
 """Photo tier loader: per-room folders of 2 to 8 stills -> Scene.
 
 No depth, no poses. Geometry comes from the shared pointmap backbone; absolute scale comes
-from the printed scale card detected in at least one frame per room. Doorway pair shots
-carry the adjacency hints.
+from a metric depth model fused with the floor plane and the operator's stated camera
+height - the protocol places nothing in the room. Doorway pair shots carry the adjacency
+hints, and are the only evidence a set of per-room folders contains that two rooms touch.
 
 NOT BUILT.
 """

@@ -15,7 +15,6 @@ git clone <repo>
 cd cozmo-ai
 python -m venv .venv && . .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python scripts/make_scale_card.py                   # prints assets/scale_card_A4.pdf
 python scripts/fetch_weights.py                     # not built yet
 ```
 
@@ -42,10 +41,11 @@ LiDAR tier. No custom app to install.
 - `docs/DEVICE_MATRIX.md` - which tier runs on which hardware, and what it delivers
 - `docs/capture/` - the operator-facing shot lists we used for our own benchmark
 
-**Print the scale card first.** `assets/scale_card_A4.pdf` at 100%, verified against a tape
-using the ruler printed on the card. Photo and video are scale-ambiguous; the card is the
-only place metres come from on those tiers, and a mis-scaled print is an undetectable
-multiplier on every dimension we report.
+**Nothing to print, nothing to place in the room.** Photo and video are scale-ambiguous -
+a room and a scale model of it produce identical pixels - so metres come from a metric depth
+model fused with the floor plane and one stated number, the operator's camera height. We
+deliberately require no fiducial: the benchmark has to be captured the same way Cozmo will
+capture at the walk-in test, or the benchmark predicts nothing.
 
 LiDAR requires a Pro-class iPhone. On a non-Pro device that tier fails loudly rather than
 falling back to the video path - reporting video-tier accuracy under a LiDAR-tier label
@@ -56,7 +56,7 @@ would be worse than refusing.
 Every tier resolves to the same `Scene`: a list of frames, each with optional depth and
 optional pose, plus an explicit scale source. LiDAR arrives with depth, poses and metres.
 Video and photos arrive with none of those and get geometry from a shared pointmap backbone
-and metres from a printed scale card placed by the capture protocol. Everything downstream of
+and metres from a metric depth model fused with the floor plane. Everything downstream of
 `pipeline/capture/` is tier-agnostic and never branches on tier; the tiers differ only in how
 wide their intervals end up, and those widths are fitted on our own benchmark residuals rather
 than chosen.

@@ -36,9 +36,6 @@ works just as well, and honestly better, because then I can re-shoot when someth
 
 ## On the day
 
-I will have already put a printed marker card on a wall in each room. **Do not move it.**
-It has to stay exactly where it is so all three capture methods share one reference.
-
 ### Settings, once
 
 Open Record3D → LiDAR / depth mode → highest depth quality available. Don't change it again
@@ -59,9 +56,8 @@ Five spaces, one recording each. I'll tell you the room name; put it in the file
    only sees the middle of the walls gives us nothing.
 4. **Stay 0.5 m to 4 m from whatever you're pointing at.** Closer than half a metre and the
    depth sensor returns nothing; further than about 4 m and it gets too noisy to use.
-5. **Pause 3 seconds facing the marker card**, filling a good part of the frame.
-6. **Pause 3 seconds square-on to every door and every window**, whole opening in frame.
-7. End where you started, and overlap the last few seconds with the first few. Walking a
+5. **Pause 3 seconds square-on to every door and every window**, whole opening in frame.
+6. End where you started, and overlap the last few seconds with the first few. Walking a
    closed loop lets us correct for drift; an open-ended walk does not.
 
 **Do not:** walk backwards, spin on the spot, cover the sensor, or wave the phone quickly.

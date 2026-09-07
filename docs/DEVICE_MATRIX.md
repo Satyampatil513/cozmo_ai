@@ -10,8 +10,8 @@ against a laser measurer in the walk-in test, so nothing goes in until it is mea
 
 | Tier | Minimum device | Sensors used | Scale source | Status |
 |---|---|---|---|---|
-| Photo | iPhone 15 or newer, any variant | Rear wide camera | Printed ArUco scale card, 149.86 mm | supported |
-| Video | iPhone 15 or newer, any variant | Rear wide camera | Printed ArUco scale card, 149.86 mm | supported |
+| Photo | iPhone 15 or newer, any variant | Rear wide camera | Metric depth + floor plane | supported |
+| Video | iPhone 15 or newer, any variant | Rear wide camera | Metric depth + floor plane | supported |
 | LiDAR | iPhone 15 **Pro / Pro Max** or newer Pro | LiDAR depth, ARKit 6-DoF pose, intrinsics | Sensor-metric | supported |
 
 The Pro/non-Pro split is a hardware fact, not a policy choice: Apple ships the LiDAR scanner

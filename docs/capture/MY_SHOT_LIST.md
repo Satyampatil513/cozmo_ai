@@ -41,12 +41,13 @@ more rooms is more capture work, not more marks.
 
 ## Before touching the camera
 
-1. **Print the scale card.** `assets/scale_card_A4.pdf`, at **100% / Actual size**, never
-   "Fit to page". Print five, one per room. Check the printed ruler against a tape: the
-   100 mm mark must land on 100 mm. If it doesn't, every measurement is wrong by that same
-   percentage, and nothing later in the pipeline can detect it.
-2. **Tape one card per room**, flat on a matte wall at chest height. It stays there for your
-   photos, your video, and your friend's LiDAR pass of that room. Write the room name on it.
+1. **Measure your phone height once** — how high you hold it when shooting, roughly
+   140-155 cm. Write it into `benchmark/raw/capture_info.txt` as `camera_height_cm: 145`.
+   Photos carry no absolute size, so scale comes from a metric depth model plus the floor
+   plane, and this number anchors the second of those. Nearest 5 cm is fine.
+2. **Nothing to print and nothing to place.** The protocol deliberately requires no props:
+   your benchmark captures have to match what Cozmo does at the walk-in test, or your
+   benchmark numbers don't predict your score there.
 3. **Walk the flat with a notepad and log the damage you actually have** — see
    `docs/capture/DAMAGE_LOG.md`. Do this before you shoot, not after: you frame differently
    once you know what you're looking for.
@@ -68,10 +69,12 @@ Per room, in this order:
 1. **Four corner shots.** Stand in each corner, shoot toward the opposite corner. Phone
    upright, chest height, back roughly to the corner. These four frames between them should
    see every wall.
-2. **One straight-on frame of the scale-card wall**, whole card clearly visible, from about
-   2 m. Not at an angle, not from across the room.
-3. **One frame per opening** — every door, every window — square-on, whole opening in frame
+2. **One frame per opening** — every door, every window — square-on, whole opening in frame
    plus some surrounding wall.
+3. **Fill up to 8** from partway along each wall where coverage looks thin.
+
+Keep the **wall-floor line visible** in every frame. The floor plane is a scale anchor, and
+frames angled up at the ceiling throw it away.
 
 Then, **once per pair of connected rooms**: stand in the doorway between them and take one
 photo into each room **without moving your feet**. Save both into the lower-numbered room's
@@ -91,7 +94,6 @@ Folder layout:
 ```
 benchmark/raw/photo/room_01_living/
     corner_a.jpg ... corner_d.jpg
-    scale_card.jpg
     opening_door_01.jpg
     opening_window_01.jpg
     doorway_to_room_05_a.jpg
@@ -106,8 +108,8 @@ benchmark/raw/photo/room_01_living/
 
 The same walk your friend does with LiDAR: perimeter, slow, phone upright at chest height,
 tilting gently so the floor-to-wall join and the ceiling-to-wall join both pass through
-frame on every wall. Pause 2 s on the scale card. Pause 2 s square-on to each opening.
-Finish where you started and overlap the beginning.
+frame on every wall. Pause 2 s square-on to each opening. Finish where you started and
+overlap the beginning.
 
 Don't walk backwards. Don't spin on the spot. Slow is free; fast is unrecoverable.
 
@@ -153,9 +155,9 @@ python scripts/validate_capture.py benchmark/raw/video --tier video
 Run this the moment the files are off the phone, on the same day you shoot.
 
 It checks the things that are invisible at capture time and unrecoverable afterwards: that
-the scale card is actually present *and usable* in every room, that the lens never switched
-to 0.5x or 3x mid-room, that every room is reachable through a doorway pair, and that frames
-aren't soft. It names the room and tells you what to re-shoot.
+the lens never switched to 0.5x or 3x mid-room, that every room is reachable through a
+doorway pair, that the still count clears the brief's floor, and that frames aren't soft.
+It names the room and tells you what to re-shoot.
 
 `FAIL` means a gate in the brief cannot be met with those files. Fix it while you're still
 in the flat and the furniture hasn't moved.

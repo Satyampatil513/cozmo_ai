@@ -1,6 +1,9 @@
 # Capture Protocol — Route 2, stock capture
 
-Version 0.3. One page. A non-engineer follows this literally, and at the defense you will.
+Version 0.4. One page. A non-engineer follows this literally, and at the defense you will.
+
+**Nothing to print, nothing to place in the room.** Install an app, walk, hand over the
+files. Any picture in, results out.
 
 ## Install
 
@@ -11,28 +14,28 @@ Version 0.3. One page. A non-engineer follows this literally, and at the defense
 | LiDAR | **Record3D** (App Store, Marek Simonik) | iPhone **Pro / Pro Max** 15 or newer |
 
 LiDAR exists only on Pro-class iPhones. On a non-Pro device the LiDAR tier is unavailable and
-our pipeline says so loudly rather than quietly running the video path. Photo and video tiers
-run on any iPhone 15 or newer.
+our pipeline says so loudly rather than quietly running the video path. Photo and video run
+on any iPhone 15 or newer.
 
 **Camera settings:** Formats → Most Compatible. Video → 1080p/30. Live Photos off. **1x wide
 lens only** — never 0.5x or 3x, and never switch lens inside a room. Flash off.
 
-## The scale card
+## Tell us one number
 
-Print `assets/scale_card_A4.pdf` at **100% / Actual size — not "Fit to page"**. Verify with a
-tape against the ruler printed on the card: the 100 mm mark must measure 100 mm. A print
-scaled to 96% makes every wall we report 4% short, and no amount of processing can detect it.
+**Roughly how high you held the phone**, in centimetres — chest height for most people, about
+140–155 cm. Your own height is a fine answer if that's easier; we'll take 0.82 of it.
 
-Tape one card per room, **flat on a matte wall at chest height**. Not folded, not curled, not
-on glass, mirror or glossy tile. It stays in place for all three tiers of that room.
+Write it in `capture/capture_info.txt` as `camera_height_cm: 145`, or just tell us.
 
-Photos and video are scale-ambiguous — geometry from images is only recovered up to an
-unknown scale factor. The card is where metres come from. Without it those tiers cannot
-honestly report any absolute dimension, and we would rather refuse than guess.
+Photos and video contain no absolute size information — a room and a perfect dollhouse
+replica of it produce identical pixels. We recover metres from a monocular metric depth model,
+and this one number gives us a second, independent estimate from the floor plane. Where the
+two disagree is our scale uncertainty, which is how the confidence intervals get their width
+instead of us inventing one. An estimate to the nearest 5 cm is genuinely enough; a wrong
+number is worse than a rough one, so guess honestly rather than precisely.
 
-If no printer is available, any bank or ID card works as a fallback (ISO/IEC 7810 ID-1,
-85.60 × 53.98 mm). It is smaller and therefore less precise at distance; the report states
-wherever the fallback was used.
+If you skip it we still work, with wider intervals and `scale_source = monocular_metric`
+recorded in the output.
 
 ## Folders
 
@@ -40,6 +43,7 @@ One folder per room, real name after the number. The number sets processing orde
 
 ```
 capture/
+  capture_info.txt
   room_01_living/
   room_02_bed_master/
   room_03_bed_two/
@@ -49,11 +53,16 @@ capture/
 
 ## Photo tier — 6 to 8 stills per room
 
-Phone upright, chest height, 1x lens.
+Phone upright, chest height, held level, 1x lens.
 
-1. One from each corner, shooting toward the opposite corner.
-2. One straight-on frame of the scale-card wall from ~2 m, whole card visible.
-3. One frame per opening (door, window), square-on, whole opening in frame.
+1. One from each corner, shooting toward the opposite corner. Stand about half a metre out
+   from the corner, not pressed into it.
+2. One frame per opening (door, window), square-on, whole opening in frame.
+3. Fill up to 8 from partway along each wall.
+
+**Include the floor.** Each frame should show where the wall meets the floor. The floor plane
+is one of our two scale anchors, and frames shot level from chest height give it to us for
+free — which is the main reason for "hold the phone level" above.
 
 **Doorway pair, once per connected pair of rooms.** Stand in the doorway and take one photo
 into each room **without moving your feet**. Save both into the lower-numbered room's folder
@@ -66,9 +75,8 @@ and the intervals widen accordingly.
 ## Video tier — one clip per room, 45 to 90 s
 
 Walk the perimeter slowly, phone upright at chest height, tilting gently so the floor-to-wall
-join and the ceiling-to-wall join both pass through frame on every wall. Pause 2 s facing the
-scale card. Pause 2 s square-on to each opening. Finish where you started, overlapping the
-first few seconds.
+join and the ceiling-to-wall join both pass through frame on every wall. Pause 2 s square-on
+to each opening. Finish where you started, overlapping the first few seconds.
 
 Do not walk backwards. Do not spin on the spot.
 

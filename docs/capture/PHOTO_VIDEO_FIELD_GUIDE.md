@@ -16,19 +16,22 @@ Step by step, in the order you do it. iPhone 17, one room at a time.
 - Live Photo → **Off** (in the camera app, the circular icon top-right, slash through it)
 - Grid → **On**
 
-**Print 5 scale cards** from `assets/scale_card_A4.pdf` at **100% / Actual size**.
-Put a tape against the ruler printed on the card. If the 100 mm mark isn't at 100 mm,
-reprint. This takes 20 seconds and there is no way to detect the error later.
+**Nothing to print, nothing to put on the walls.** Install nothing beyond the stock camera.
 
-**Tape one card in each room**, flat on a plain matte wall, chest height, roughly in the
-middle of the wall. Not on glass, tile, or a mirror. Write the room name on it.
+**Note your phone height once.** Roughly how high you hold the phone when shooting — chest
+height, about 140-155 cm for most people. Measure it once with a tape and write it into
+`benchmark/raw/capture_info.txt` as `camera_height_cm: 145`.
+
+That single number is one of the two ways the photo and video tiers recover real-world
+size (the other is a metric depth model). To the nearest 5 cm is fine. Then hold the phone
+at that height consistently — which you were going to do anyway.
 
 ---
 
 ## Step 1 — Per room, the photo set
 
 You are taking **6 to 8 photos**. Hold the phone **vertically**, at **chest height**,
-**level** — not tilted down at the floor. Stay on **1x**. Never pinch-zoom.
+**level** — not angled up at the ceiling. Stay on **1x**. Never pinch-zoom.
 
 ### The four corner shots
 
@@ -47,13 +50,17 @@ Repeat in all four corners.
 wall you lose the two walls right beside you, which are the ones that corner was supposed
 to cover.
 
-### Then two or three more
+### Then two to four more
 
-5. **The card**: stand about **2 m** back, square-on to the card wall, whole card in frame,
-   not at an angle. This is the photo that gives the room its metres — take it twice if
-   you're unsure.
-6. **Each door**: stand square-on, whole door frame in shot plus some wall around it.
-7. **Each window**: same.
+5. **Each door**: stand square-on, whole door frame in shot plus some wall around it.
+6. **Each window**: same.
+7. **Fill up to 8** from partway along each wall, wherever coverage looks thin.
+
+### Keep the floor in shot
+
+Every frame should show **where the wall meets the floor**. The floor plane is one of the
+two things that give the room its real size, and holding the phone level at a known height
+hands it to us for nothing. A set of photos angled up at the ceiling has no scale anchor.
 
 ### The one rule that matters more than the count
 
@@ -99,9 +106,8 @@ folders contain nothing else that says two rooms touch.
    **floor** and the line where the wall meets the **ceiling** both pass through frame on
    every wall. Those two lines are what the room's dimensions get measured from. A video of
    just the middle of the walls is close to useless.
-4. **Stop 2 seconds facing the card**, square-on, filling a decent part of the frame.
-5. **Stop 2 seconds square-on at each door and each window.**
-6. Finish where you started and **keep recording for 3 more seconds**, overlapping your
+4. **Stop 2 seconds square-on at each door and each window.**
+5. Finish where you started and **keep recording for 3 more seconds**, overlapping your
    opening view. Closing the loop lets drift be corrected; an open-ended walk can't be.
 
 **Never:** walk backwards, spin on the spot, or swing the phone quickly. Fast motion is the
@@ -162,8 +168,8 @@ python scripts/validate_capture.py benchmark/raw/photo
 python scripts/validate_capture.py benchmark/raw/video --tier video
 ```
 
-Fix every `FAIL` while the cards are still on the walls and the furniture hasn't moved.
-That is the entire reason to validate on shoot day rather than next week.
+Fix every `FAIL` the same day, while the furniture hasn't moved and you can still walk
+back into the room. That is the entire reason to validate on shoot day rather than next week.
 
 ---
 
@@ -171,10 +177,10 @@ That is the entire reason to validate on shoot day rather than next week.
 
 | | Per room |
 |---|---|
-| Photos | 4 corners + 1 card + 1 per opening = **6-8** |
+| Photos | 4 corners + 1 per opening + fill = **6-8**, floor visible in each |
 | Doorway pairs | 2 photos per connecting door, **feet still** |
-| Video | **45-90 s**, slow perimeter, tilt up and down, pause on card and openings |
+| Video | **45-90 s**, slow perimeter, tilt up and down, pause at each opening |
 | Whole flat | **one** continuous clip, all rooms, back to start |
 
-**The four things people get wrong:** tilting the phone down at the floor, walking too fast,
-forgetting the doorway pairs, and letting the camera switch off 1x.
+**The four things people get wrong:** tilting the phone up so the floor never appears,
+walking too fast, forgetting the doorway pairs, and letting the camera switch off 1x.

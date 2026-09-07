@@ -23,11 +23,11 @@ Purpose: answer format questions before committing to a full shoot.
 - [ ] File gets off the phone: Files -> Drive/iCloud -> pulled down on the laptop (no AirDrop)
 - [ ] `.r3d` opens with the `record3d` Python library on Windows; depth, pose and intrinsics
       all readable. If this fails, fix it now, not at hour 20.
-- [ ] One room, all 3 tiers, scale card in frame, quick tape measurements for a sanity check
+- [ ] One room, all 3 tiers, quick tape measurements for a sanity check
 - [ ] Confirm Record3D's free-tier clip length limit is long enough for a room walkthrough
 - [ ] If `.r3d` export is locked or capped: fall back to 3D Scanner App (Laan Labs, free),
       Export -> All Data, and find that out NOW rather than on shoot day
-- [ ] Scale card printed at 100% and verified against a tape using the ruler on the card
+- [ ] Camera height measured once and written to benchmark/raw/capture_info.txt
 
 ## Session 2 — Full benchmark (once geometry stage runs on the probe data)
 
@@ -42,7 +42,6 @@ Purpose: answer format questions before committing to a full shoot.
 - [ ] Measure and photograph every damage region square-on before the tiered capture
 
 ### Per room, in this order
-- [ ] Scale card (or bank card fallback) placed
 - [ ] Photo tier, 6 to 8 stills
 - [ ] Doorway pair shots for every connection
 - [ ] Video tier, 45 to 90 s

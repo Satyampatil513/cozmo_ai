@@ -14,7 +14,7 @@
         "device": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" },
         "pipeline_commit": { "type": "string" },
-        "scale_source": { "enum": ["lidar_metric", "scale_card", "monocular_metric", "none"] },
+        "scale_source": { "enum": ["lidar_metric", "monocular_metric", "floor_plane", "fused_mono_floor", "none"] },
         "drift_correction": { "type": "boolean" }
       }
     },

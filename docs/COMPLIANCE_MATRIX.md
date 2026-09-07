@@ -15,7 +15,7 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | # | Requirement | Path | Artifact | Status |
 |---|---|---|---|---|
 | 1.1 | Capture route declared (Route 2) | docs/CAPTURE_PROTOCOL.md | one-page protocol v0.3 | DONE |
-| 1.1a | Scale card the protocol depends on | assets/scale_card_A4.pdf, scripts/make_scale_card.py | printable A4 + sidecar | DONE |
+| 1.1a | Capture route requires no props | docs/CAPTURE_PROTOCOL.md v0.4 | protocol | DONE |
 | 1.1b | Operator-facing shot lists | docs/capture/ | 3 briefs | DONE |
 | 1.1c | Capture validator, pre-reconstruction | scripts/validate_capture.py | CLI + exit code | DONE |
 | 1.1d | Photo/video field guide | docs/capture/PHOTO_VIDEO_FIELD_GUIDE.md | procedure | DONE |
@@ -23,8 +23,9 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 1.2 | Device matrix | docs/DEVICE_MATRIX.md | table | PARTIAL - accuracy columns unmeasured |
 | 1.2a | LiDAR tier fails loudly on non-Pro device | pipeline/capture/lidar.py | guard + test | NOT BUILT |
 | 1.3 | Photo tier, 2 to 8 stills, no depth, no poses | pipeline/capture/photo.py | loader | NOT BUILT |
-| 1.3a | Scale card detection + sighting quality | pipeline/capture/scale_card.py | detect() | DONE |
-| 1.3b | Scale card -> metre scale factor | pipeline/capture/scale_card.py | recover() | NOT BUILT - needs backbone |
+| 1.3a | Monocular metric depth scale | pipeline/capture/scale.py | estimator | NOT BUILT |
+| 1.3b | Floor-plane + camera-height scale | pipeline/capture/scale.py | estimator | NOT BUILT |
+| 1.3c | Fusion of the two, sigma from their disagreement | pipeline/capture/scale.py | fused Scale | NOT BUILT |
 | 1.4 | Video tier | pipeline/capture/video.py | loader | NOT BUILT |
 | 1.5 | LiDAR tier, depth + poses + intrinsics | pipeline/capture/lidar.py | loader | NOT BUILT |
 

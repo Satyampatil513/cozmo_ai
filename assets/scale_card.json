@@ -1,8 +1,0 @@
-{
-  "dictionary": "DICT_4X4_50",
-  "marker_id": 0,
-  "marker_side_mm": 149.86,
-  "nominal_side_mm": 150.0,
-  "render_dpi": 300,
-  "note": "marker_side_mm is authoritative; assumes the sheet was printed at 100%"
-}

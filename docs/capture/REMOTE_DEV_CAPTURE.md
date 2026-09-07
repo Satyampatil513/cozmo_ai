@@ -96,7 +96,8 @@ Same room, straight after, nothing moved.
 **Photos — 8 of them.** Phone vertical, chest height, held level (not tilted down):
 
 - One from **each of the four corners**, shooting toward the opposite corner. Stand about
-  half a metre out from the corner, not jammed into it.
+  half a metre out from the corner, not jammed into it. Keep the **wall-floor line in
+  shot** — held level at chest height it will be.
 - One **square-on to the door**, whole frame in shot.
 - One **square-on to each window**.
 - Fill up to 8 with shots from halfway along each wall.
@@ -107,23 +108,16 @@ photo.** Eight overlapping photos are worth far more than eight unrelated ones.
 **Video — one clip, 45 to 90 seconds.** Same slow perimeter walk as the LiDAR scan, same
 gentle up-and-down tilt, pause square-on at the door and windows, finish where you started.
 
-## About scale
+## One number I need
 
-The LiDAR scan measures real distances by itself, so it needs nothing extra — that part is
-covered.
+**Roughly how high you held the phone**, in centimetres — chest height, usually 140-155.
+Measure it once with a tape. Nearest 5 cm is fine.
 
-Photos and video **can't** recover real size on their own; they need a known-size object in
-frame. Two options:
-
-- **Best:** I'll send you a PDF to print on A4 at **100% / actual size** (not "fit to
-  page"). Tape it flat on a wall at chest height and make sure it's in several photos and
-  in the video. It has a ruler printed on it — check with a tape that the 100 mm mark
-  really is 100 mm.
-- **If you can't print:** tape a **bank or ID card** flat to the wall at chest height,
-  and get a few photos square-on to it from about a metre. Every such card worldwide is
-  exactly 85.60 × 53.98 mm. Less accurate than the printed sheet, but workable.
-
-Either way, leave it in place for the photos and the video.
+Nothing to print and nothing to tape to a wall. The LiDAR scan measures real distances by
+itself. Photos and video can't — a room and a scale model of it look identical in a photo —
+so I recover size from a depth model plus the floor plane, and your phone height is what
+anchors the second one. That's also why the photos should show where the wall meets the
+floor, and why holding the phone level matters.
 
 ---
 

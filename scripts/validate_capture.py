@@ -4,11 +4,11 @@
     python scripts/validate_capture.py benchmark/raw/video --tier video
 
 Why this exists, and why it exists early: the expensive failure on this project is not a
-wrong number, it is discovering three weeks later that a room was captured without the
-scale card in any frame, or that the lens flipped to 0.5x halfway through, or that no
-doorway pair was ever shot between the hall and bedroom three. None of those are
-recoverable after the fact and all of them are invisible at capture time. Every one is
-detectable in seconds from the files themselves.
+wrong number, it is discovering three weeks later that the lens flipped to 0.5x halfway
+through a room, or that no doorway pair was ever shot between the hall and bedroom three,
+or that a room has three usable stills. None of those are recoverable after the fact and
+all of them are invisible at capture time. Every one is detectable in seconds from the
+files themselves.
 
 So this runs against raw folders and needs none of the reconstruction pipeline. It answers
 one question: what do I have to re-shoot, and which room is it in.
@@ -30,18 +30,17 @@ import numpy as np
 from PIL import Image, ExifTags
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from pipeline.capture import scale_card  # noqa: E402
 
 PHOTO_EXT = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
 VIDEO_EXT = {".mov", ".mp4", ".m4v"}
 
+CAMERA_HEIGHT_RANGE_CM = (110.0, 190.0)
 MIN_STILLS = 2                 # the brief's floor: "2 to 8 stills per room"
 GOOD_STILLS = 6                # below this the intervals widen for no good reason
 MIN_VIDEO_S, MAX_VIDEO_S = 45.0, 90.0
 FRAME_BLUR_FLOOR = 60.0        # whole-frame Laplacian variance
 VIDEO_SAMPLE_FRAMES = 40
 
-_EXIF_TAG = {v: k for k, v in ExifTags.TAGS.items()}
 DOORWAY_RE = re.compile(r"doorway_to_(room_\d+)[_-]?([ab])?", re.I)
 
 
@@ -110,30 +109,24 @@ def check_photo_room(room: str, files: list[str], rep: Report) -> None:
     if len(files) < GOOD_STILLS:
         rep.warn(scope, f"{len(files)} stills; {GOOD_STILLS}-8 is the working set")
 
-    # --- scale card ---------------------------------------------------------
-    # Photos are scale-ambiguous. Without one usable sighting this room has no metres at
-    # all, so this is the single most important check in the file.
-    sightings, unusable = [], []
+    # --- decode and resolution consistency -----------------------------------
+    # Mixed resolutions in one room usually means a mode changed mid-shoot (a crop, a
+    # screenshot, a shot pulled from a different app). The reconstruction assumes one
+    # camera, so it is worth knowing before rather than after.
+    shapes: dict[tuple[int, int], int] = defaultdict(int)
     for f in files:
         img = _imread(f)
         if img is None:
             rep.warn(scope, f"could not decode {os.path.basename(f)}")
             continue
-        s = scale_card.detect(img, f)
-        if s is None:
-            continue
-        (sightings if s.usable else unusable).append(s)
-
-    if sightings:
-        best = max(sightings, key=lambda s: s.sharpness)
-        rep.ok(scope, f"scale card usable in {len(sightings)}/{len(files)} frames "
-                      f"(best {os.path.basename(best.image_path)}, "
-                      f"{best.apparent_side_px:.0f}px, obliquity {best.obliquity:.2f})")
-    elif unusable:
-        why = "; ".join(sorted({s.reason for s in unusable}))
-        rep.fail(scope, f"scale card seen in {len(unusable)} frame(s) but none usable - {why}")
-    else:
-        rep.fail(scope, "scale card not found in any frame - this room has no metric scale")
+        shapes[img.shape[:2]] += 1
+    if len(shapes) > 1:
+        detail = ", ".join(f"{w}x{h} x{n}" for (h, w), n in sorted(shapes.items()))
+        rep.warn(scope, f"mixed resolutions ({detail}) - all frames should come "
+                        f"straight from the camera at one setting")
+    elif shapes:
+        (h, w), n = next(iter(shapes.items()))
+        rep.ok(scope, f"{n} frames, {w}x{h}")
 
     # --- lens consistency ---------------------------------------------------
     # Switching between 0.5x, 1x and 3x mid-room changes the intrinsics. The reconstruction
@@ -190,8 +183,8 @@ def check_video_room(room: str, files: list[str], rep: Report) -> None:
         elif not is_whole and not (MIN_VIDEO_S <= dur <= MAX_VIDEO_S):
             rep.warn(scope, f"{name}: {dur:.0f}s, outside the {MIN_VIDEO_S:.0f}-{MAX_VIDEO_S:.0f}s window")
 
-        # Sample across the clip for the card and for motion blur.
-        seen, sharp_seen, blurry = 0, 0, 0
+        # Sample across the clip for motion blur.
+        blurry = 0
         idx = np.linspace(0, max(0.0, n - 1), VIDEO_SAMPLE_FRAMES).astype(int) if n > 1 else [0]
         for i in idx:
             cap.set(cv2.CAP_PROP_POS_FRAMES, int(i))
@@ -201,18 +194,9 @@ def check_video_room(room: str, files: list[str], rep: Report) -> None:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             if cv2.Laplacian(gray, cv2.CV_64F).var() < FRAME_BLUR_FLOOR:
                 blurry += 1
-            s = scale_card.detect(gray, f"{name}#{i}")
-            if s is not None:
-                seen += 1
-                if s.usable:
-                    sharp_seen += 1
         cap.release()
 
         rep.ok(scope, f"{name}: {dur:.0f}s {w}x{h} @{fps:.0f}fps")
-        if sharp_seen == 0 and not is_whole:
-            lvl = rep.fail if seen == 0 else rep.warn
-            lvl(scope, f"{name}: scale card {'never seen' if seen == 0 else 'seen but never usable'} "
-                       f"in {len(idx)} sampled frames - pause 2s square-on to the card")
         if blurry > len(idx) * 0.4:
             rep.warn(scope, f"{name}: {blurry}/{len(idx)} sampled frames soft - walk slower")
 
@@ -272,6 +256,36 @@ def check_adjacency(rooms: dict[str, list[str]], rep: Report) -> None:
         rep.ok("adjacency", f"all {len(rooms)} rooms connected via {len(edges)} doorway pair(s)")
 
 
+def check_camera_height(root: str, rep: Report) -> None:
+    """The one number the protocol asks the operator for.
+
+    Photo and video are scale-ambiguous, and the protocol deliberately places nothing in
+    the room. Metres come from a metric depth model, with the floor plane plus this height
+    as the second, independent estimate - and it is their disagreement that gives every
+    interval its width. Missing it does not break the run; it costs us the cross-check and
+    widens everything, which is worth saying out loud while it can still be measured.
+    """
+    for cand in (os.path.join(root, "capture_info.txt"),
+                 os.path.join(os.path.dirname(root.rstrip("/\\")), "capture_info.txt")):
+        if not os.path.isfile(cand):
+            continue
+        txt = open(cand, encoding="utf-8", errors="replace").read()
+        m = re.search(r"camera_height_cm\s*[:=]\s*([0-9.]+)", txt, re.I)
+        if not m:
+            rep.warn("capture", f"{os.path.basename(cand)} has no camera_height_cm line")
+            return
+        h = float(m.group(1))
+        lo, hi = CAMERA_HEIGHT_RANGE_CM
+        if not (lo <= h <= hi):
+            rep.warn("capture", f"camera_height_cm = {h:g}, outside the plausible "
+                                f"{lo:g}-{hi:g} cm range - is it in centimetres?")
+        else:
+            rep.ok("capture", f"camera height {h:g} cm")
+        return
+    rep.warn("capture", "no capture_info.txt with camera_height_cm - the floor-plane scale "
+                        "cross-check is unavailable and all intervals widen")
+
+
 def collect(root: str, exts: set[str]) -> dict[str, list[str]]:
     rooms: dict[str, list[str]] = {}
     for entry in sorted(os.listdir(root)):
@@ -317,6 +331,7 @@ def main() -> int:
                 check_video_room(room, files, rep)
         if tier == "photo":
             check_adjacency(rooms, rep)
+        check_camera_height(root, rep)
 
     width = max((len(f.scope) for f in rep.findings), default=10)
     print(f"\ncapture: {root}   tier: {tier}   rooms: {len(rooms)}\n")
