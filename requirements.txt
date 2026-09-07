@@ -6,3 +6,6 @@ svgwrite>=1.4
 pillow>=10.0
 jsonschema>=4.20
 record3d>=1.4
+torch>=2.14
+transformers>=5.0
+torchvision>=0.29

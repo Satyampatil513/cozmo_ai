@@ -173,28 +173,58 @@ def extract_planes(
     return sorted(out, key=lambda p: -p.n_inliers)
 
 
-def estimate_gravity(planes: list[Plane]) -> np.ndarray:
-    """Find the up axis from the planes themselves.
+# A handheld phone held as the protocol asks - upright, chest height, level - puts world-up
+# within roughly this cone of the camera's -y axis. Wider than any careful operator, narrow
+# enough to exclude a wall normal, which is what it exists to do.
+GRAVITY_PRIOR_CONE_DEG = 45.0
 
-    On the LiDAR tier ARKit hands us gravity directly and this is a cross-check. On photo and
-    video there is no IMU in the file, so it has to be inferred.
+# Camera convention: x right, y down, z forward. Up is -y.
+CAMERA_UP = np.array([0.0, -1.0, 0.0])
 
-    The method is a small Manhattan-frame vote: every plane normal is a candidate up axis,
-    and each candidate scores the inlier mass of all planes that are either parallel to it
-    (floors, ceilings, tabletops) or perpendicular to it (walls). A room's true vertical is
-    the direction that makes the most surfaces axis-aligned, which is exactly what that
-    maximises. Weighting by inlier count rather than plane count stops a cluster of small
-    clutter planes outvoting the floor.
+
+def estimate_gravity(planes: list[Plane], prior: np.ndarray | None = CAMERA_UP,
+                     cone_deg: float = GRAVITY_PRIOR_CONE_DEG) -> np.ndarray:
+    """Find the up axis: a Manhattan-frame vote, restricted to a cone around a prior.
+
+    The vote alone: every plane normal is a candidate up axis, and each candidate scores the
+    inlier mass of all planes either parallel to it (floors, ceilings, tabletops) or
+    perpendicular to it (walls). A room's true vertical maximises that, and weighting by
+    inlier count stops a cluster of small clutter planes outvoting the floor.
+
+    The vote alone is not enough, and this was measured rather than anticipated. In a single
+    photo of a room, a wall is frequently the largest plane in frame and the floor is a
+    foreshortened sliver, so the unconstrained vote picks the wall: on real captures it
+    returned normals like [0.73, 0.07, -0.68] and the "floor" and "ceiling" it then chose were
+    two walls, giving ceiling heights of 2 to 22 centimetres. The vote is a good tiebreaker
+    and a bad primary.
+
+    So a prior is applied. The protocol asks the operator to hold the phone upright and level,
+    which puts world-up near the camera's -y axis, and unlike the scene content that prior
+    does not depend on which wall happens to dominate the frame. Candidates outside the cone
+    are rejected outright; if none survive, the prior itself is returned rather than a
+    confidently wrong answer.
+
+    Pass prior=None on the LiDAR tier, where ARKit supplies real gravity and this becomes a
+    cross-check, or where a full multi-view reconstruction has already fixed the vertical.
     """
     if not planes:
-        return np.array([0.0, 0.0, 1.0])
+        return prior.copy() if prior is not None else np.array([0.0, 0.0, 1.0])
 
     par = np.cos(np.radians(AXIS_TOL_DEG))
     perp = np.sin(np.radians(AXIS_TOL_DEG))
-    best, best_score = planes[0].normal, -1.0
 
+    candidates: list[np.ndarray] = []
     for cand in planes:
-        g = cand.normal
+        n = cand.normal / np.linalg.norm(cand.normal)
+        for signed in (n, -n):                    # normals are sign-ambiguous
+            if prior is None or float(signed @ prior) >= np.cos(np.radians(cone_deg)):
+                candidates.append(signed)
+
+    if not candidates:
+        return prior.copy() if prior is not None else planes[0].normal
+
+    best, best_score = candidates[0], -1.0
+    for g in candidates:
         score = 0.0
         for p in planes:
             c = abs(float(p.normal @ g))
@@ -203,8 +233,7 @@ def estimate_gravity(planes: list[Plane]) -> np.ndarray:
         if score > best_score:
             best, best_score = g, score
 
-    g = best / np.linalg.norm(best)
-    return g
+    return best / np.linalg.norm(best)
 
 
 def classify(planes: list[Plane], gravity: np.ndarray, points: np.ndarray
@@ -324,12 +353,13 @@ def _floor_basis(gravity: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return e1, np.cross(g, e1)
 
 
-def fit_floor_ceiling(points, normals=None, threshold: float = 0.03):
+def fit_floor_ceiling(points, normals=None, threshold: float = 0.03,
+                      gravity_prior: np.ndarray | None = CAMERA_UP):
     """Convenience entry point: point cloud in, (gravity, floor, ceiling, walls) out."""
     planes = extract_planes(points, normals, threshold=threshold)
     if not planes:
         return None
-    gravity = estimate_gravity(planes)
+    gravity = estimate_gravity(planes, prior=gravity_prior)
     planes, gravity = classify(planes, gravity, points)
     planes = regularize(planes, gravity, points)
     floor = next((p for p in planes if p.kind == "floor"), None)

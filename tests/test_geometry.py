@@ -30,8 +30,15 @@ def check(name: str, cond: bool, detail: str = "") -> None:
         FAILURES.append(name)
 
 
+# Synthetic rooms are built in a z-up world frame. The library's default prior is the
+# camera-frame -y, which is right for the photo tier and wrong here, so the convention is
+# stated explicitly rather than inherited.
+WORLD_UP = np.array([0.0, 0.0, 1.0])
+
+
 def solve(room, threshold=0.03):
-    got = fit_floor_ceiling(room.points, room.normals, threshold=threshold)
+    got = fit_floor_ceiling(room.points, room.normals, threshold=threshold,
+                            gravity_prior=WORLD_UP)
     if got is None:
         return None
     g, floor, ceiling, walls = got
