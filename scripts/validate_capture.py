@@ -38,8 +38,15 @@ CAMERA_HEIGHT_RANGE_CM = (110.0, 190.0)
 MIN_STILLS = 2                 # the brief's floor: "2 to 8 stills per room"
 GOOD_STILLS = 6                # below this the intervals widen for no good reason
 MIN_VIDEO_S = 20.0             # shorter than this cannot cover a room at walking pace
-FRAME_BLUR_FLOOR = 60.0        # whole-frame Laplacian variance
+FRAME_BLUR_FLOOR = 60.0        # Laplacian variance, measured at BLUR_CANONICAL_W
+BLUR_CANONICAL_W = 1200        # every frame is resized to this width before measuring
 VIDEO_SAMPLE_FRAMES = 40
+
+# Overlap check. Two views are "linked" if they survive a fundamental-matrix RANSAC with at
+# least this many inliers - roughly the floor for a usable two-view geometry.
+OVERLAP_MIN_INLIERS = 30
+OVERLAP_WORK_PX = 1000         # long edge; SIFT on 24 MP frames is pointlessly slow
+OVERLAP_NEAR_DUPLICATE = 400   # above this the two shots are essentially the same viewpoint
 
 # Matches doorway_to_<room>.jpg and the older doorway_to_<room>_a/_b.jpg pair form.
 # <room> is matched against the actual folder names rather than a fixed pattern, so the
@@ -84,14 +91,43 @@ def _imread(path: str) -> np.ndarray | None:
 
 
 def _exif(path: str) -> dict:
+    """Flatten the top-level IFD and the EXIF sub-IFD into one dict.
+
+    getexif() alone returns only the top-level IFD, which carries Make/Model/Orientation but
+    NOT FocalLength or FocalLengthIn35mmFilm - those live in the EXIF sub-IFD behind tag
+    0x8769. Reading only the top level made every real iPhone capture report "no EXIF focal
+    length", which silently disabled the lens-consistency check on exactly the files it
+    exists to protect.
+    """
     try:
         with Image.open(path) as im:
             raw = im.getexif()
             if not raw:
                 return {}
-            return {ExifTags.TAGS.get(k, k): v for k, v in raw.items()}
+            out = {ExifTags.TAGS.get(k, k): v for k, v in raw.items()}
+            try:
+                sub = raw.get_ifd(0x8769)
+            except Exception:
+                sub = {}
+            out.update({ExifTags.TAGS.get(k, k): v for k, v in sub.items()})
+            return out
     except Exception:
         return {}
+
+
+def _blur(img: np.ndarray) -> float:
+    """Laplacian variance at a fixed width, so one threshold means one thing.
+
+    Laplacian variance counts edge energy per pixel, so it falls as resolution rises: the
+    same sharp frame scores 39 at 4284 px wide and 307 at 1200 px. A fixed threshold tuned at
+    one resolution therefore condemns every high-megapixel capture as blurred - which is
+    what a 24 MP iPhone frame did here. Resizing first makes the number comparable across
+    devices and camera settings.
+    """
+    if img.shape[1] > BLUR_CANONICAL_W:
+        h = int(img.shape[0] * BLUR_CANONICAL_W / img.shape[1])
+        img = cv2.resize(img, (BLUR_CANONICAL_W, h), interpolation=cv2.INTER_AREA)
+    return float(cv2.Laplacian(img, cv2.CV_64F).var())
 
 
 def _focal35(path: str) -> float | None:
@@ -152,7 +188,7 @@ def check_photo_room(room: str, files: list[str], rep: Report) -> None:
         img = _imread(f)
         if img is None:
             continue
-        if cv2.Laplacian(img, cv2.CV_64F).var() < FRAME_BLUR_FLOOR:
+        if _blur(img) < FRAME_BLUR_FLOOR:
             blurry.append(os.path.basename(f))
     if blurry:
         rep.warn(scope, f"soft/blurred frames: {', '.join(sorted(blurry))}")
@@ -194,14 +230,89 @@ def check_video_room(room: str, files: list[str], rep: Report) -> None:
             ok, frame = cap.read()
             if not ok:
                 continue
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            if cv2.Laplacian(gray, cv2.CV_64F).var() < FRAME_BLUR_FLOOR:
+            if _blur(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)) < FRAME_BLUR_FLOOR:
                 blurry += 1
         cap.release()
 
         rep.ok(scope, f"{name}: {dur:.0f}s {w}x{h} @{fps:.0f}fps")
         if blurry > len(idx) * 0.4:
             rep.warn(scope, f"{name}: {blurry}/{len(idx)} sampled frames soft - walk slower")
+
+
+def _sift_features(path: str):
+    img = _imread(path)
+    if img is None:
+        return None
+    s = OVERLAP_WORK_PX / max(img.shape)
+    if s < 1.0:
+        img = cv2.resize(img, (int(img.shape[1] * s), int(img.shape[0] * s)),
+                         interpolation=cv2.INTER_AREA)
+    return cv2.SIFT_create(nfeatures=4000).detectAndCompute(img, None)
+
+
+def _match_inliers(a, b) -> int:
+    if a is None or b is None or a[1] is None or b[1] is None:
+        return 0
+    good = [m for m, n in cv2.BFMatcher().knnMatch(a[1], b[1], k=2)
+            if m.distance < 0.75 * n.distance]
+    if len(good) < 8:
+        return 0
+    p1 = np.float32([a[0][m.queryIdx].pt for m in good])
+    p2 = np.float32([b[0][m.trainIdx].pt for m in good])
+    _, mask = cv2.findFundamentalMat(p1, p2, cv2.FM_RANSAC, 3.0, 0.99)
+    return int(mask.sum()) if mask is not None else 0
+
+
+def check_overlap(room: str, files: list[str], rep: Report) -> None:
+    """Do these photos actually see enough of each other to reconstruct?
+
+    This is the check that most directly predicts whether the photo tier will work at all,
+    and it is the one thing you cannot judge by eye: a set of frames can each be sharp,
+    well-exposed and correctly framed while sharing almost no common surface, and the failure
+    only shows up weeks later as a reconstruction that will not converge.
+
+    Method is a classical two-view geometry test - SIFT, ratio test, fundamental-matrix
+    RANSAC - and the result is the connectivity of the graph it induces. A split graph means
+    the room was photographed as two or more islands with nothing tying them together.
+
+    Read this as a LOWER bound, not a verdict. SIFT is weak exactly where indoor rooms are
+    hard: painted walls with no texture, and wide baselines between viewpoints. The
+    feed-forward models we intend to use (VGGT / DUSt3R class) are built for sparse overlap
+    and routinely succeed where SIFT returns nothing. So a split graph here is a warning to
+    look at, not proof the capture is unusable - which is why it is a WARN and never a FAIL.
+    """
+    if len(files) < 2:
+        return
+    feats = [_sift_features(f) for f in files]
+    n = len(files)
+    M = np.zeros((n, n), dtype=int)
+    for i in range(n):
+        for j in range(i + 1, n):
+            M[i, j] = M[j, i] = _match_inliers(feats[i], feats[j])
+
+    adj = M >= OVERLAP_MIN_INLIERS
+    seen, stack = {0}, [0]
+    while stack:
+        c = stack.pop()
+        for k in np.flatnonzero(adj[c]):
+            if int(k) not in seen:
+                seen.add(int(k))
+                stack.append(int(k))
+
+    names = [os.path.basename(f) for f in files]
+    if len(seen) < n:
+        stranded = sorted(names[i] for i in range(n) if i not in seen)
+        rep.warn(room, f"overlap graph splits: {len(seen)}/{n} frames linked, "
+                       f"not reachable: {', '.join(stranded)} - shots are too far apart to "
+                       f"match classically")
+    else:
+        rep.ok(room, f"overlap graph connected, all {n} frames linked")
+
+    dupes = [(names[i], names[j]) for i in range(n) for j in range(i + 1, n)
+             if M[i, j] > OVERLAP_NEAR_DUPLICATE]
+    for a, b in dupes:
+        rep.warn(room, f"{a} and {b} are near-duplicate viewpoints - one of the 2-8 stills "
+                       f"is spent twice on the same view")
 
 
 def check_adjacency(rooms: dict[str, list[str]], rep: Report) -> None:
@@ -311,6 +422,8 @@ def main() -> int:
     ap.add_argument("capture_dir")
     ap.add_argument("--tier", choices=["photo", "video"], default=None,
                     help="default: inferred from the files present")
+    ap.add_argument("--fast", action="store_true",
+                    help="skip the SIFT overlap check (the slow part)")
     args = ap.parse_args()
 
     root = args.capture_dir
@@ -333,6 +446,8 @@ def main() -> int:
         for room, files in rooms.items():
             if tier == "photo":
                 check_photo_room(room, files, rep)
+                if not args.fast:
+                    check_overlap(room, files, rep)
             else:
                 check_video_room(room, files, rep)
         if tier == "photo":
