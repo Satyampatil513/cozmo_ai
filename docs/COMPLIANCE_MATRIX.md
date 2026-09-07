@@ -22,9 +22,9 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 1.1e | Remote dev capture brief | docs/capture/REMOTE_DEV_CAPTURE.md | brief | DONE |
 | 1.2 | Device matrix | docs/DEVICE_MATRIX.md | table | PARTIAL - accuracy columns unmeasured |
 | 1.2a | LiDAR tier fails loudly on non-Pro device | pipeline/capture/lidar.py | guard + test | NOT BUILT |
-| 1.3 | Photo tier, 2 to 8 stills, no depth, no poses | pipeline/capture/photo.py | loader | NOT BUILT |
-| 1.3a | Monocular metric depth scale | pipeline/capture/scale.py | estimator | NOT BUILT |
-| 1.3b | Floor-plane + camera-height scale | pipeline/capture/scale.py | estimator | NOT BUILT |
+| 1.3 | Photo tier, 2 to 8 stills, no depth, no poses | pipeline/capture/photo.py | loader | DONE |
+| 1.3a | Monocular metric depth | pipeline/capture/depth.py | backend + registry | PARTIAL - runs, +26% scale error |
+| 1.3b | Depth to oriented point cloud | pipeline/geometry/lift.py | lift() | DONE |
 | 1.3c | Fusion of the two, sigma from their disagreement | pipeline/capture/scale.py | fused Scale | NOT BUILT |
 | 1.4 | Video tier | pipeline/capture/video.py | loader | NOT BUILT |
 | 1.5 | LiDAR tier, depth + poses + intrinsics | pipeline/capture/lidar.py | loader | NOT BUILT |
@@ -33,9 +33,9 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 
 | # | Requirement | Path | Artifact | Status |
 |---|---|---|---|---|
-| 2.1 | Walls | pipeline/geometry/walls.py | room polygon | NOT BUILT |
-| 2.2 | Ceiling height | pipeline/geometry/planes.py | measurement | NOT BUILT |
-| 2.3 | Floor area | pipeline/geometry/walls.py | measurement | NOT BUILT |
+| 2.1 | Walls | pipeline/geometry/walls.py | room polygon | DONE - untested on real data |
+| 2.2 | Ceiling height | pipeline/geometry/planes.py | measurement | PARTIAL - +26% vs tape, see benchmark/results/baseline_ceiling_height.md |
+| 2.3 | Floor area | pipeline/geometry/walls.py | measurement | DONE - untested on real data |
 | 2.4 | Openings | pipeline/geometry/openings.py | list | NOT BUILT |
 | 2.5 | Stitched plan with adjacency | pipeline/stitching/stitch.py | property plan | NOT BUILT |
 | 2.6 | Damage regions, class + metric extent | pipeline/damage/detect.py | list | NOT BUILT |
