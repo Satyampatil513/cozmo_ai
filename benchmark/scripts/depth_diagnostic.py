@@ -46,7 +46,9 @@ PLAUSIBLE_CAM_H = (1.0, 1.8)
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("capture_dir")
-    ap.add_argument("--backend", default="depth_anything_v2_metric_indoor")
+    ap.add_argument("--backend", default="metric3d_v2",
+                    help="metric3d_v2 (default, uses intrinsics) or "
+                         "depth_anything_v2_metric_indoor (baseline)")
     ap.add_argument("--stride", type=int, default=2)
     args = ap.parse_args()
 
