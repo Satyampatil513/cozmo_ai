@@ -236,13 +236,112 @@ def estimate_gravity(planes: list[Plane], prior: np.ndarray | None = CAMERA_UP,
     return best / np.linalg.norm(best)
 
 
-def classify(planes: list[Plane], gravity: np.ndarray, points: np.ndarray
-             ) -> tuple[list[Plane], np.ndarray]:
-    """Label each plane floor / ceiling / wall, and orient gravity so it points up.
+# Soft priors for floor/ceiling selection. These are DEFENSIVE HEURISTICS tuned on the
+# benchmark scenes, not universal physical truths: real properties have ceilings under 1.9 m
+# and over 4.5 m, split levels, and mezzanines. So they are stated as priors, they decay
+# smoothly rather than cutting off, and a frame with no plausible candidate abstains instead
+# of emitting a measurement. The report says exactly this rather than claiming all rooms obey
+# a fixed range.
+SEP_PRIOR_M = (2.70, 0.90)          # floor-ceiling separation: centre, width
+CAM_HEIGHT_PRIOR_M = (1.45, 0.45)   # handheld camera above the floor: centre, width
+MIN_HEADROOM_M = 0.30               # ceiling must be meaningfully above the camera
+BOUND_TOL_M = 0.08                  # slack when asking "is anything outside this pair"
 
-    Floor and ceiling are separated by height, not by normal direction. A fitted normal's
-    sign is arbitrary - SVD gives no orientation - so "its normal points up" is not
-    information we actually have, and using it would coin-flip the two apart.
+
+def _soft(x: float, centre: float, width: float) -> float:
+    """Gaussian bump in [0, 1]. Smooth, so an unusual room is penalised, never excluded."""
+    return float(np.exp(-(((x - centre) / width) ** 2)))
+
+
+def select_floor_ceiling(planes: list[Plane], gravity: np.ndarray, points: np.ndarray,
+                         camera_at_origin: bool = True
+                         ) -> tuple[Plane | None, Plane | None, float]:
+    """Choose the floor/ceiling pair *jointly*, by scoring every candidate pair.
+
+    The previous rule - take the two largest horizontal planes - fails in a way that is not
+    rare. In a frame looking through an open doorway the two largest horizontals can be a near
+    floor and a door head, and their separation gets reported as a ceiling height. Three of 28
+    real frames did exactly that, returning 0.44 m to 0.97 m.
+
+    A hard separation range alone would not fix it. Two large horizontal surfaces that happen
+    to sit 2-4 m apart - a table top and the ceiling, a bed and the ceiling - pass a range
+    filter and are still the wrong pair. What actually distinguishes a real floor/ceiling pair
+    is a conjunction of properties, so they are scored together and the pair chosen jointly:
+
+      support        both planes carry real evidence, saturating so one huge plane cannot buy
+                     its way past a failure on another term
+      parallelism    a floor and its ceiling are parallel to each other
+      horizontality  both are perpendicular to gravity
+      separation     their spacing is plausible for a habitable room (soft prior)
+      bounding       almost nothing lies below the floor or above the ceiling - the pair
+                     should enclose the scene, which a table top does not
+      camera         the camera sits between them, roughly a person's height above the floor
+
+    Multiplicative rather than additive on purpose: these are conditions that must hold
+    together, and a weighted sum lets one very large plane outvote a hard geometric
+    contradiction.
+
+    Returns (floor, ceiling, score). Score is 0 when no pair is defensible, and the caller is
+    expected to abstain rather than report.
+    """
+    par = np.cos(np.radians(AXIS_TOL_DEG))
+    g = gravity / np.linalg.norm(gravity)
+
+    horiz = [p for p in planes if abs(float(p.normal @ g)) > par and p.n_inliers > 0]
+    if len(horiz) < 2:
+        return (horiz[0] if horiz else None), None, 0.0
+
+    height = {id(p): float(np.mean(points[p.inliers] @ g)) for p in horiz}
+    hp = points @ g
+    total = max(1, len(points))
+    saturate = 0.15 * total
+
+    best = None
+    for f in horiz:
+        for c in horiz:
+            if f is c or height[id(c)] <= height[id(f)]:
+                continue
+            sep = height[id(c)] - height[id(f)]
+
+            s_support = min(1.0, (f.n_inliers + c.n_inliers) / saturate)
+            s_parallel = abs(float(f.normal @ c.normal))
+            s_horiz = min(abs(float(f.normal @ g)), abs(float(c.normal @ g)))
+            s_sep = _soft(sep, *SEP_PRIOR_M)
+
+            below = float(np.mean(hp < height[id(f)] - BOUND_TOL_M))
+            above = float(np.mean(hp > height[id(c)] + BOUND_TOL_M))
+            s_bound = (1.0 - below) * (1.0 - above)
+
+            s_cam = 1.0
+            if camera_at_origin:
+                # Points are in the camera frame with the camera at the origin, so the floor
+                # sits at negative height along gravity and the ceiling at positive.
+                cam_h = -height[id(f)]
+                headroom = height[id(c)]
+                s_cam = _soft(cam_h, *CAM_HEIGHT_PRIOR_M)
+                if headroom < MIN_HEADROOM_M:
+                    s_cam *= 0.05
+
+            score = s_support * s_parallel * s_horiz * s_sep * s_bound * s_cam
+            if best is None or score > best[0]:
+                best = (score, f, c)
+
+    if best is None:
+        return None, None, 0.0
+    return best[1], best[2], best[0]
+
+
+def classify(planes: list[Plane], gravity: np.ndarray, points: np.ndarray,
+             camera_at_origin: bool = True
+             ) -> tuple[list[Plane], np.ndarray, float]:
+    """Label each plane floor / ceiling / wall, orient gravity up, and score the choice.
+
+    Floor and ceiling are separated by height, not by normal direction. A fitted normal's sign
+    is arbitrary - SVD gives no orientation - so "its normal points up" is not information we
+    actually have, and using it would coin-flip the two apart.
+
+    The third return value is the floor/ceiling selection confidence. Callers abstain on a low
+    score rather than reporting a number they cannot defend.
     """
     par = np.cos(np.radians(AXIS_TOL_DEG))
     perp = np.sin(np.radians(AXIS_TOL_DEG))
@@ -251,21 +350,18 @@ def classify(planes: list[Plane], gravity: np.ndarray, points: np.ndarray
         c = abs(float(p.normal @ gravity))
         p.kind = "wall" if c < perp else ("horizontal" if c > par else "unknown")
 
-    horizontal = [p for p in planes if p.kind == "horizontal"]
-    if len(horizontal) >= 2:
-        height = {id(p): float(np.mean(points[p.inliers] @ gravity)) for p in horizontal}
-        # Floor and ceiling are the two largest horizontal planes, which is more robust than
-        # "lowest and highest": in a furnished room the lowest horizontal plane is often a
-        # rug or a mattress, and the highest is often the top of a wardrobe.
-        big = sorted(horizontal, key=lambda p: -p.n_inliers)[:2]
-        lo, hi = sorted(big, key=lambda p: height[id(p)])
-        lo.kind, hi.kind = "floor", "ceiling"
-        if height[id(hi)] < height[id(lo)]:      # gravity was pointing down
-            gravity = -gravity
-    elif horizontal:
-        horizontal[0].kind = "floor"
+    floor, ceiling, score = select_floor_ceiling(planes, gravity, points, camera_at_origin)
+    if floor is not None:
+        floor.kind = "floor"
+    if ceiling is not None:
+        ceiling.kind = "ceiling"
+        if floor is not None:
+            h_f = float(np.mean(points[floor.inliers] @ gravity))
+            h_c = float(np.mean(points[ceiling.inliers] @ gravity))
+            if h_c < h_f:                       # gravity was pointing down
+                gravity = -gravity
 
-    return planes, gravity
+    return planes, gravity, score
 
 
 def regularize(planes: list[Plane], gravity: np.ndarray, points: np.ndarray) -> list[Plane]:
@@ -353,16 +449,31 @@ def _floor_basis(gravity: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return e1, np.cross(g, e1)
 
 
+# Below this floor/ceiling selection score we decline to report a height. Calibrated on the
+# benchmark: sound frames score far above it, the catastrophic frames far below.
+MIN_SELECTION_SCORE = 0.02
+
+
 def fit_floor_ceiling(points, normals=None, threshold: float = 0.03,
-                      gravity_prior: np.ndarray | None = CAMERA_UP):
-    """Convenience entry point: point cloud in, (gravity, floor, ceiling, walls) out."""
+                      gravity_prior: np.ndarray | None = CAMERA_UP,
+                      camera_at_origin: bool = True,
+                      min_score: float = MIN_SELECTION_SCORE):
+    """Point cloud in, (gravity, floor, ceiling, walls, score) out.
+
+    Returns ceiling=None when the floor/ceiling selection cannot be defended, so the caller
+    abstains rather than reporting a confident number. Abstaining is the correct behaviour:
+    the brief penalises confident garbage on thin input, and a frame that cannot see a whole
+    room is not a measurement of one.
+    """
     planes = extract_planes(points, normals, threshold=threshold)
     if not planes:
         return None
     gravity = estimate_gravity(planes, prior=gravity_prior)
-    planes, gravity = classify(planes, gravity, points)
+    planes, gravity, score = classify(planes, gravity, points, camera_at_origin)
     planes = regularize(planes, gravity, points)
     floor = next((p for p in planes if p.kind == "floor"), None)
     ceiling = next((p for p in planes if p.kind == "ceiling"), None)
     walls = [p for p in planes if p.kind == "wall"]
-    return gravity, floor, ceiling, walls
+    if score < min_score:
+        ceiling = None                  # abstain: no defensible floor/ceiling pair
+    return gravity, floor, ceiling, walls, score

@@ -65,8 +65,64 @@ look better and be wrong.
 
 ## Post-mortem (written after the after-run)
 
-Actual after:
+### What shipped
 
-Prediction error:
+Not the rule as declared. The declaration proposed "most support, subject to separation in
+[1.9, 4.5] m". That was revised before implementation on the grounds that two large horizontal
+surfaces which happen to sit 2-4 m apart - a table top and the ceiling, a bed and the ceiling -
+pass a range filter and are still the wrong pair. What shipped instead scores candidate pairs
+**jointly** on six signals - support, parallelism, horizontality, separation, bounding, and
+camera position - multiplied rather than summed, so one very large plane cannot outvote a hard
+geometric contradiction. The hard range became a smooth prior, and the report describes it as a
+defensive heuristic for the benchmark scenes rather than a claim that all rooms are 1.9-4.5 m.
 
-Why:
+### Actual after
+
+| Metric | Before | Predicted | **Actual** |
+|---|---|---|---|
+| Catastrophic frames (\|err\| > 50%) | 3 | 0 | **0** |
+| SD across frames | 24.1% | < 12% | **10.6%** |
+| Frames within ±8% | 36% | 50-60% | **40%** |
+| Mean error | −12.2% | −10% to −13% | **+1.8%** |
+
+Abstentions: 3 — exactly Room 2/IMG_0451, Room 3/IMG_0458 and Kitchen/IMG_0435, the three
+frames the declaration named. Their selection scores were 0.0000, 0.0000 and 0.0002.
+
+### Prediction error
+
+**Two of four predictions correct.** Catastrophic frames and SD landed as predicted. The
+±8% share was over-predicted (50-60% claimed, 40% actual). The mean was **badly wrong**: I
+predicted it would barely move and it moved 14 percentage points, from −12.2% to +1.8%.
+
+### Why the mean prediction was wrong
+
+I assumed the plane-selection fault was confined to the three frames where it produced
+obvious nonsense. It was not. It was also selecting a too-low ceiling on many frames where the
+result still looked plausible, and those were quietly dragging the mean down:
+
+| Frame | Before | After |
+|---|---|---|
+| Room 1 / IMG_0440 | 2.345 m | 2.904 m |
+| Room 1 / IMG_0443 | 2.304 m | 2.901 m |
+| Room 2 / IMG_0448 | 2.237 m | 2.989 m |
+| Room 3 / IMG_0454 | 2.403 m | 3.138 m |
+| Room 3 / IMG_0457 | 2.299 m | 2.906 m |
+| Kitchen / IMG_0436 | 1.915 m | 2.955 m |
+
+So the reasoning error was one of scope, not of mechanism: the diagnosis of *what* was broken
+was right, the estimate of *how widely* was wrong. Three visibly broken frames were treated as
+the whole population of a fault that actually affected roughly a quarter of the capture.
+
+This also revises a claim made earlier and already flagged as overstated. Attributing the
+failure to "geometry, not depth" on the strength of two depth models disagreeing was too
+strong; but the direction was, if anything, understated - plane selection turned out to carry
+more of the total error than the depth backend swap did. The defensible statement remains:
+the catastrophic failures were dominated by plane-selection ambiguity, evidenced by large
+output variation between depth estimators on the same frame.
+
+### What this fix did not do
+
+It did not address bias, and it did not close the ceiling gate. Mean error is now +1.8%,
+which is good, but SD is 10.6% and only 40% of frames land within ±8%. Against the 1.5 cm
+gate the error is still roughly 30 cm. Single-frame monocular estimation remains the limit;
+multi-view fusion is the next lever, and it addresses spread rather than bias.

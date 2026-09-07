@@ -73,9 +73,13 @@ def main() -> int:
             if got is None:
                 print(f"{room:<12} {os.path.basename(path):<16} {'no planes':>11}")
                 continue
-            _, floor, ceil, _ = got
+            _, floor, ceil, _walls, score = got
             if floor is None:
                 print(f"{room:<12} {os.path.basename(path):<16} {'no floor':>11}")
+                continue
+            if ceil is None:
+                print(f"{room:<12} {os.path.basename(path):<16} "
+                      f"{'ABSTAIN':>11}   (selection score {score:.4f})")
                 continue
             cam_h = abs(floor.d)          # camera sits at the origin, so |d| is its height
             h, sp = ceiling_height(floor, ceil, pts)

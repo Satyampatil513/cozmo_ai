@@ -37,11 +37,13 @@ WORLD_UP = np.array([0.0, 0.0, 1.0])
 
 
 def solve(room, threshold=0.03):
+    # Synthetic clouds are a whole room in world coordinates, not a camera-frame view, so the
+    # camera-height term in the floor/ceiling scoring does not apply and is switched off.
     got = fit_floor_ceiling(room.points, room.normals, threshold=threshold,
-                            gravity_prior=WORLD_UP)
+                            gravity_prior=WORLD_UP, camera_at_origin=False)
     if got is None:
         return None
-    g, floor, ceiling, walls = got
+    g, floor, ceiling, walls, _score = got
     return extract_walls(room.points, floor, ceiling, walls=walls, gravity=g)
 
 
