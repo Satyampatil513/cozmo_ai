@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cozmo.local/schemas/output.schema.json",
+  "title": "Cozmo capture output contract v0.1",
+  "type": "object",
+  "required": ["schema_version", "capture", "property", "rooms"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "capture": {
+      "type": "object",
+      "required": ["tier", "device", "timestamp", "pipeline_commit", "scale_source"],
+      "properties": {
+        "tier": { "enum": ["photo", "video", "lidar"] },
+        "device": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "pipeline_commit": { "type": "string" },
+        "scale_source": { "enum": ["lidar_metric", "scale_card", "monocular_metric", "none"] },
+        "drift_correction": { "type": "boolean" }
+      }
+    },
+    "property": {
+      "type": "object",
+      "required": ["rooms", "connections", "footprint_area"],
+      "properties": {
+        "rooms": { "type": "array", "items": { "type": "string" } },
+        "connections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from_room", "to_room", "via_opening"],
+            "properties": {
+              "from_room": { "type": "string" },
+              "to_room": { "type": "string" },
+              "via_opening": { "type": "string" }
+            }
+          }
+        },
+        "footprint_area": { "$ref": "#/$defs/measurement" },
+        "plan_polygon": { "$ref": "#/$defs/polygon" }
+      }
+    },
+    "rooms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "walls", "openings", "ceiling_height", "floor_area", "polygon", "surfaces", "damage", "scope_items"],
+        "properties": {
+          "id": { "type": "string" },
+          "polygon": { "$ref": "#/$defs/polygon" },
+          "walls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "start", "end", "length"],
+              "properties": {
+                "id": { "type": "string" },
+                "start": { "$ref": "#/$defs/point2" },
+                "end": { "$ref": "#/$defs/point2" },
+                "length": { "$ref": "#/$defs/measurement" }
+              }
+            }
+          },
+          "openings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "type", "wall_id", "width", "height"],
+              "properties": {
+                "id": { "type": "string" },
+                "type": { "enum": ["door", "window", "opening"] },
+                "wall_id": { "type": "string" },
+                "width": { "$ref": "#/$defs/measurement" },
+                "height": { "$ref": "#/$defs/measurement" },
+                "detection_confidence": { "type": "number" }
+              }
+            }
+          },
+          "ceiling_height": { "$ref": "#/$defs/measurement" },
+          "floor_area": { "$ref": "#/$defs/measurement" },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "type"],
+              "properties": {
+                "id": { "type": "string" },
+                "type": { "enum": ["wall", "floor", "ceiling"] },
+                "wall_id": { "type": "string" },
+                "area": { "$ref": "#/$defs/measurement" }
+              }
+            }
+          },
+          "damage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "surface_id", "class", "extent", "concealed_flag"],
+              "properties": {
+                "id": { "type": "string" },
+                "surface_id": { "type": "string" },
+                "class": { "type": "string" },
+                "detection_confidence": { "type": "number" },
+                "extent": {
+                  "type": "object",
+                  "required": ["area"],
+                  "properties": {
+                    "area": { "$ref": "#/$defs/measurement" },
+                    "long_axis": { "$ref": "#/$defs/measurement" },
+                    "short_axis": { "$ref": "#/$defs/measurement" }
+                  }
+                },
+                "concealed_flag": {
+                  "type": "object",
+                  "required": ["raised"],
+                  "properties": {
+                    "raised": { "type": "boolean" },
+                    "rule_id": { "type": "string" },
+                    "rule_text": { "type": "string" },
+                    "evidence": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "scope_items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "surface_id", "damage_id", "action", "quantity"],
+              "properties": {
+                "id": { "type": "string" },
+                "surface_id": { "type": "string" },
+                "damage_id": { "type": "string" },
+                "action": { "type": "string" },
+                "quantity": { "$ref": "#/$defs/measurement" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "required": ["value", "unit", "interval", "confidence", "method"],
+      "properties": {
+        "value": { "type": "number" },
+        "unit": { "enum": ["m", "m2", "cm", "count"] },
+        "interval": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "method": { "type": "string" }
+      }
+    },
+    "point2": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "polygon": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/point2" }
+    }
+  }
+}
