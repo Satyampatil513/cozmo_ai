@@ -15,6 +15,7 @@ git clone <repo>
 cd cozmo-ai
 python -m venv .venv && . .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+python scripts/make_scale_card.py                   # prints assets/scale_card_A4.pdf
 python scripts/fetch_weights.py                     # not built yet
 ```
 
@@ -34,8 +35,21 @@ python run.py capture/ --out out_nodrift/ --no-drift-correction
 
 ## Capture
 
-We provide no capture app. See `docs/CAPTURE_PROTOCOL.md` for the one-page stock-capture
-protocol and `docs/DEVICE_MATRIX.md` for what each tier delivers on what hardware.
+Route 2, stock capture: native iOS Camera for the photo and video tiers, Record3D for the
+LiDAR tier. No custom app to install.
+
+- `docs/CAPTURE_PROTOCOL.md` - the one page an operator follows literally
+- `docs/DEVICE_MATRIX.md` - which tier runs on which hardware, and what it delivers
+- `docs/capture/` - the operator-facing shot lists we used for our own benchmark
+
+**Print the scale card first.** `assets/scale_card_A4.pdf` at 100%, verified against a tape
+using the ruler printed on the card. Photo and video are scale-ambiguous; the card is the
+only place metres come from on those tiers, and a mis-scaled print is an undetectable
+multiplier on every dimension we report.
+
+LiDAR requires a Pro-class iPhone. On a non-Pro device that tier fails loudly rather than
+falling back to the video path - reporting video-tier accuracy under a LiDAR-tier label
+would be worse than refusing.
 
 ## Design in one paragraph
 
