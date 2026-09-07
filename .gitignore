@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Pipeline outputs
+out/
+out_*/
+*.egg-info/
+
+# Model weights, fetched by script
+weights/
+
+# --- Privacy ---
+# This repo is public and the benchmark is captured inside a lived-in home.
+# Raw media never lands in git. It ships in the reproduction bundle instead.
+benchmark/raw/**
+!benchmark/raw/**/README.md
+!benchmark/raw/**/.gitkeep
+!benchmark/raw/**/manifest.json
+
+# Cozmo's case-study brief is their material, not ours to publish.
+*.docx
+
+.DS_Store
+Thumbs.db
