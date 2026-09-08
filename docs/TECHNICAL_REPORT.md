@@ -117,6 +117,24 @@ room, then adds:
   vertically to a shared floor level and horizontally along matched walls. The on/off ablation
   the brief requires is a real, computed number, not a description.
 
+**Photo-tier property stitching** turned out not to need a separate capture protocol. The
+same cycle-gated registration above never assumed its photos all came from one room — that
+was simply the only thing anyone had called it with. Running it on **every photo from every
+room at once** lets any real cross-room overlap (a photo that incidentally sees through a
+doorway) supply the correspondence a deliberate doorway-pair shot would have. Run on the real
+5-room, 28-photo capture:
+
+![Property-wide registration: one room fully connected (white), every cross-room edge correctly rejected](report_assets/12_property_wide_graph.png)
+
+Only one room's photos ever connect; every cross-room edge is rejected — twice for an
+implausible camera height, twice for a depth-scale ratio outside sanity (1.54×, 1.76×). This
+capture was never shot with cross-room correspondence in mind, so refusal is the *correct*
+answer, not a shortfall: the same gates that catch false positives on video catch this too.
+That the mechanism itself works is checked separately — two synthetic photos in different
+rooms given genuinely shared content produce a clean match (258 inliers, 0 cm residual,
+depth-scale ratio 1.00) — so the gate is proven able to *accept* good cross-room evidence, not
+only reject bad.
+
 ---
 
 ## 5. Error budget & calibration
@@ -199,6 +217,23 @@ noisy real trace, not a redesign.
 capture, 4 of 80 on the second (longer, more room changes). A broken link now retries against
 the last posed frame for 15 frames before giving up — a real fix, verified — but does not
 fully solve sparse coverage on a long multi-room walk.
+
+**Trajectory-density segmentation over-segments a large or complex real space.** Re-running
+the team-supplied LiDAR capture through the current pipeline (ARKit poses nearly every frame,
+so doorway-crossing detection never applies — no RGB is decoded for that tier) stitched it
+into **9 sub-rooms** with reported ceiling heights from **1.79 m to 3.08 m**, a 1.3 m spread.
+These are substantial, well-populated clusters (5–88 frames each), not noise-level slivers:
+
+![Camera trajectory branches into 9 clusters; ceiling height is not consistent across them](report_assets/13_lidar_oversegmentation.png)
+
+A 1.3 m ceiling-height spread across "rooms" of one capture is not physically plausible for a
+normal residential space — it is the signature of the bed-as-floor failure (§ above)
+recurring on sub-regions of a large, cluttered, or open-plan space, not 9 verified rooms. No
+ground truth exists for this property to confirm either reading. What IS clear: density-based
+segmentation has no equivalent of the camera-height plausibility gate that already exists for
+individual frame placement, and should — a ceiling-height-spread check across proposed
+sub-rooms, analogous to `MAX_CAMERA_HEIGHT_DEV_M`, would catch this class of over-segmentation
+before it reaches a confident 9-room stitch.
 
 ---
 

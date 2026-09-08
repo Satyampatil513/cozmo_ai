@@ -39,7 +39,7 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 2.2 | Ceiling height | pipeline/geometry/planes.py | measurement + abstention | PARTIAL - LiDAR +3.8%, video +7.2%, photo +1.9% to +11.9% by room. Abstains rather than guessing. Gate is <=1.5 cm; we are an order of magnitude out |
 | 2.3 | Floor area | pipeline/geometry/walls.py | measurement | PARTIAL - 12.535 m2 on photo Room 2, the only real capture that closed a polygon. Unscored: no ground truth |
 | 2.4 | Openings | pipeline/geometry/openings.py | list | PARTIAL - door height +1.9% vs tape, 1 false positive |
-| 2.5 | Stitched plan with adjacency | pipeline/stitching/stitch.py | property plan | NOT BUILT |
+| 2.5 | Stitched plan with adjacency | pipeline/stitching/stitch.py | property plan | PARTIAL - video/lidar and photo-tier stitching are both built and wired into run.py; no real capture has produced a confirmed multi-room stitch yet (real cross-room evidence has so far always been rejected by the verification gates, correctly - see docs/TECHNICAL_REPORT.md §4/§7) |
 | 2.6 | Damage regions, class + metric extent | pipeline/damage/detect.py | list | NOT BUILT |
 | 2.7 | Concealed-damage flags with rule fired | pipeline/damage/rules.py | list | NOT BUILT |
 | 2.8 | Scope line items keyed to surfaces | pipeline/damage/scope.py | list | NOT BUILT |
@@ -78,7 +78,7 @@ than required, which costs nothing. The reverse assumption would have cost the r
 | 2.19 | Gate: ceiling height + spread | benchmark/scripts/gates.py | report row | NOT BUILT |
 | 2.20 | Gate: repeatability | benchmark/scripts/gates.py | report row | NOT BUILT |
 | 2.21 | Gate: drift, with on/off ablation | benchmark/scripts/ablation.py | two footprints | NOT BUILT |
-| 2.22 | Gate: photo-tier whole-property stitch | benchmark/scripts/gates.py | report row | NOT BUILT |
+| 2.22 | Gate: photo-tier whole-property stitch | pipeline/stitching/stitch.py: stitch_photo_property() | real run + edge-level positive control | BUILT, currently REJECTS on our own capture - correctly: every cross-room edge on the real 5-room set fails an existing verification gate (implausible camera height, or depth-scale ratio outside sanity), because none of that overlap was ever deliberately shot. Proven able to accept genuine cross-room evidence separately (test_stitching.py, edge-level, real 3D-3D match). The gates.py report row itself is not yet written |
 | 2.23 | Calibration scored at every tier | pipeline/confidence/calibrate.py | coverage curve | NOT BUILT |
 
 ## Waived: same rooms at all three tiers (2.15)
