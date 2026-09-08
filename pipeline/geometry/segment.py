@@ -163,3 +163,283 @@ def segment_rooms(posed_frames: list[Frame], gravity: np.ndarray,
     # reads in the sequence someone would actually walk it rather than by cluster size.
     ordered = sorted(groups.values(), key=lambda idx: min(idx))
     return [sorted(idx) for idx in ordered]
+
+
+# ================================================================================================
+# Doorway-crossing segmentation: a room change is confirmed by leaving the room's own scene
+# content, not by inferring it from camera trajectory density.
+#
+# WHY THIS EXISTS ALONGSIDE THE DENSITY METHOD ABOVE, RATHER THAN INSTEAD OF IT. Density
+# clustering only ever looks at POSED frames, and pose is exactly the resource that runs out on
+# a hard walk: on the real 60-keyframe capture only 14 posed at all (odometry coverage falling
+# as the walk gets longer and crosses more transitions), and 14 positions spread across two
+# rooms and a hallway never accumulate enough density in any one grid cell to register as a
+# room. Density clustering was starved of the one input it needs, on the exact capture where a
+# room change genuinely happened.
+#
+# A doorway crossing needs neither a pose nor a depth map to detect - just two RGB frames and
+# a feature match, which survives every frame that failed full PnP odometry. So this runs on
+# the FULL raw sampled sequence, in TIME order, independent of which frames later succeeded at
+# posing, and gives segmentation a signal that does not disappear exactly when it is needed.
+#
+# THE METHOD, matching the shape of the idea directly: a person walking through one room and
+# into the next does not gradually replace the scene - they walk through a doorway, and the
+# view changes sharply and briefly around that one transit, while it stays highly self-similar
+# on either side of it ("keep building the local map" describes exactly this: consecutive
+# frames INSIDE a room share most of their scene). So a transition is a LOCAL DROP in
+# frame-to-frame feature similarity, judged against the sequence's own distribution - the same
+# "judged against this clip's own distribution" principle `video.py` already uses for blur,
+# because a fixed absolute threshold cannot tell "this clip has fast transitions" from "this
+# pair happens to be a transition".
+# ================================================================================================
+
+FEATURES_PER_FRAME = 2000
+MATCH_RATIO_TEST = 0.75
+# A transition pair's similarity must fall this many MADs below the sequence's own median to
+# be flagged - not an absolute count, because how many features two frames share depends on
+# the scene (a cluttered room matches richly; a plain hallway barely matches at all even
+# frame-to-frame), and only the RELATIVE dip at a transition is informative.
+TRANSITION_MAD_K = 2.5
+MIN_SEGMENT_LEN = 3              # matches measure.py's own floor for attempting a fused fit
+
+
+def _sift_features(gray: np.ndarray):
+    import cv2
+    return cv2.SIFT_create(nfeatures=FEATURES_PER_FRAME).detectAndCompute(gray, None)
+
+
+def _match_similarity(desc_a, kp_a, desc_b, kp_b) -> float:
+    """Good matches / the smaller of the two feature counts - a scene-complexity-normalised
+    similarity, not a raw match count, so a plain wall (few features anywhere) and a cluttered
+    room (thousands of features everywhere) are judged on the same scale."""
+    import cv2
+    if desc_a is None or desc_b is None or len(kp_a) < 8 or len(kp_b) < 8:
+        return 0.0
+    good = [m for m, n in cv2.BFMatcher().knnMatch(desc_a, desc_b, k=2)
+           if m.distance < MATCH_RATIO_TEST * n.distance]
+    return len(good) / max(1, min(len(kp_a), len(kp_b)))
+
+
+def detect_transitions(frames: list) -> list[dict]:
+    """Frames in TIME order -> the pairwise similarity trace and every flagged transition.
+
+    Returns a list of `{"index": i, "similarity": s, "is_transition": bool}` for every
+    consecutive pair (i, i+1) - the full trace, not just the flagged points, so a caller (or a
+    person debugging a bad split) can see the whole signal rather than a single boolean per
+    cut. Needs only `frame.image`; poses and depth are never touched.
+    """
+    import cv2
+    n = len(frames)
+    if n < 2:
+        return []
+    if any(f.image is None for f in frames):
+        # The .r3d container carries an RGB frame per depth frame, but the LiDAR loader does
+        # not currently decode it into `Frame.image` (only depth and pose are read) - decoding
+        # every JPEG in a capture that is usually a single room would cost real time for a
+        # signal that tier does not need: ARKit poses nearly every frame, so the density
+        # method below already segments it correctly without ever looking at an image. Empty
+        # trace here reads as "no transitions", which correctly routes the caller to that
+        # fallback rather than crashing on a cv2 call over `None`.
+        return []
+
+    gray = [cv2.cvtColor(f.image, cv2.COLOR_RGB2GRAY) for f in frames]
+    feats = [_sift_features(g) for g in gray]
+
+    sims = [_match_similarity(feats[i][1], feats[i][0], feats[i + 1][1], feats[i + 1][0])
+           for i in range(n - 1)]
+    if not sims:
+        return []
+
+    arr = np.array(sims)
+    med = float(np.median(arr))
+    mad = 1.4826 * float(np.median(np.abs(arr - med))) or 1e-6      # MAD -> sigma, robust
+    thresh = med - TRANSITION_MAD_K * mad
+
+    return [{"index": i, "similarity": sims[i], "is_transition": sims[i] < thresh}
+           for i in range(n - 1)]
+
+
+def segment_by_doorway_crossings(frames: list) -> tuple[list[list[int]], list[dict]]:
+    """The primary segmenter: cut the TIME-ordered frame sequence at detected doorway
+    crossings, then re-identify any segment that is really a return to an earlier room.
+
+    Cutting first, re-identifying second, mirrors the two-step idea directly: "confirm someone
+    changed rooms" (the cut), then "after getting out from the same door, we know we are back
+    at the previous room" (the merge, done separately by `reidentify_rooms` below once each
+    segment has fitted walls to compare). A segment is judged by its own fitted walls, not its
+    raw points, which is what makes "the same room, revisited" a well-posed geometric question.
+
+    Returns (frame-index groups in walk order, the transition trace) - the trace travels with
+    the groups so a caller can report exactly which pairs triggered a cut, not a bare room
+    count with no evidence behind it.
+    """
+    n = len(frames)
+    trace = detect_transitions(frames)
+    cuts = [t["index"] for t in trace if t["is_transition"]]
+    if not cuts:
+        return [list(range(n))], trace
+
+    bounds = [0] + [c + 1 for c in cuts] + [n]
+    groups = [list(range(bounds[i], bounds[i + 1])) for i in range(len(bounds) - 1)]
+    # A cut too close to the start or end of the walk (a brief stumble, not a real transit)
+    # produces a sliver segment with nothing fusable in it - folded into its only neighbour
+    # rather than kept as a room no measurement could ever be attempted on.
+    i = 0
+    while i < len(groups):
+        if len(groups[i]) < MIN_SEGMENT_LEN:
+            if i == 0 and len(groups) > 1:
+                groups[1] = groups[i] + groups[1]
+                groups.pop(i)
+            elif i > 0:
+                groups[i - 1] = groups[i - 1] + groups[i]
+                groups.pop(i)
+            else:
+                i += 1
+        else:
+            i += 1
+    return groups, trace
+
+
+def reidentify_rooms(groups: list[list[int]], wall_lists: list[list],
+                     centroids: list[np.ndarray | None],
+                     angle_tol_deg: float = 12.0, offset_tol_m: float = 0.20,
+                     centroid_tol_m: float = 1.5) -> tuple[list[list[int]], list[int]]:
+    """Merge a later segment into an earlier one if their fitted walls COINCIDE AND they sit
+    in roughly the same PLACE - "walked back into a room already mapped", not "a room next
+    door that happens to share a wall line".
+
+    THE PLACE CHECK IS NOT OPTIONAL, AND THIS WAS A MEASURED FAILURE OF THE FIRST VERSION.
+    Two rooms sitting side by side in an ordinary row - the common case in a real flat - share
+    the LINE their front and back walls sit on, even though they are different rooms: room A
+    spanning x in [0,4] and room B spanning x in [4,7.5], both 3 m deep, both have a wall at
+    y=0 and a wall at y=3 - the SAME two infinite planes, extended past where either room's
+    own wall actually ends. Matching on (normal, offset) alone read that shared corridor line
+    as "half of room B's walls coincide with room A's", which is exactly the `>= 2 of 4`
+    threshold the original version required, and it merged two genuinely different rooms.
+
+    So a candidate must ALSO have a point-cloud centroid within `centroid_tol_m` of the
+    earlier segment's - "the same place", not merely "a matching pair of infinite lines". This
+    is deliberately a tighter test than `find_adjacent_rooms`'s shared-wall match: adjacency
+    wants two DIFFERENT rooms whose walls sit close but on OPPOSITE sides (a party wall) at
+    DIFFERENT locations; re-identification wants the SAME room seen twice, so it requires wall
+    coincidence AND spatial coincidence together, with no opposite-sides test at all - it is
+    not looking for a boundary, it is looking for an identity.
+
+    Returns (merged groups, `owner` - for each original group index, which output group index
+    it was folded into). A segment identified as a revisit contributes its frames to the
+    ORIGINAL room's reconstruction, which is exactly how "keep building the local map" should
+    treat a second visit: more evidence for the same room, not a duplicate one.
+    """
+    cos_tol = np.cos(np.radians(angle_tol_deg))
+    owner = list(range(len(groups)))       # each group starts owning itself
+
+    for later in range(1, len(groups)):
+        walls_later, c_later = wall_lists[later], centroids[later]
+        if not walls_later or c_later is None:
+            continue
+        best_match, best_count = None, 0
+        for earlier in range(later):
+            if owner[earlier] != earlier:      # only match against a root, not another alias
+                continue
+            walls_earlier, c_earlier = wall_lists[earlier], centroids[earlier]
+            if not walls_earlier or c_earlier is None:
+                continue
+            if float(np.linalg.norm(c_later - c_earlier)) > centroid_tol_m:
+                continue        # not the same place - wall coincidence alone proves nothing
+            matched = 0
+            for wl in walls_later:
+                for we in walls_earlier:
+                    dot = float(wl.normal @ we.normal)
+                    if abs(dot) < cos_tol:
+                        continue
+                    d_e = we.d if dot > 0 else -we.d
+                    if abs(wl.d - d_e) <= offset_tol_m:
+                        matched += 1
+                        break
+            if matched > best_count:
+                best_match, best_count = earlier, matched
+        # Require at least half of the later segment's own walls to coincide with the
+        # candidate's - one or two incidentally-parallel walls is not enough evidence that two
+        # segments are the same physical room, only that they are not obviously different ones.
+        if best_match is not None and best_count >= max(2, len(walls_later) // 2):
+            owner[later] = owner[best_match]
+
+    merged: dict[int, list[int]] = {}
+    for i, idx in enumerate(groups):
+        merged.setdefault(owner[i], []).extend(idx)
+    out_groups = [sorted(v) for v in merged.values()]
+    return out_groups, owner
+
+
+def segment_rooms_by_doorway(frames: list[Frame], posed: list[Frame], tier: str,
+                             plane_threshold: float) -> tuple[list[list[int]] | None, dict]:
+    """The full pipeline: detect crossings on ALL sampled frames, fit each candidate room's
+    walls from its OWN posed subset, re-identify revisits, and return groups expressed as
+    POSED-frame indices - the indexing `stitch_posed_capture` already expects.
+
+    Runs on `frames` (every sampled frame, posed or not) rather than `posed` for the cut
+    detection itself, because a frame that failed full PnP odometry still shows what the
+    camera was looking at, and a doorway crossing is visible in that regardless. Posed frames
+    are only needed afterward, to actually fuse and measure each side of a cut.
+
+    Returns `(None, report)` when fewer than two rooms survive re-identification - the caller
+    falls back to density clustering or the ordinary single-room path, and `report` states
+    why (no transitions found, or every candidate room re-identified as the same one).
+    """
+    from pipeline.geometry.fuse import fuse_frames
+    from pipeline.geometry.planes import estimate_gravity, extract_planes, fit_floor_ceiling, \
+        merge_coplanar
+
+    groups_full, trace = segment_by_doorway_crossings(frames)
+    report = {"transitions_detected": sum(1 for t in trace if t["is_transition"]),
+             "pairs_checked": len(trace), "candidate_rooms": len(groups_full)}
+    if len(groups_full) <= 1:
+        report["reason"] = "no doorway crossing detected in the frame sequence"
+        return None, report
+
+    # Map each candidate room's frames (in the FULL sequence) onto their position in `posed` -
+    # the only frames `fuse_frames` can use. A candidate with too few posed frames to fuse is
+    # dropped from re-identification rather than crashing it, and is folded into
+    # `report["unfusable_candidates"]` so the gap is visible rather than silently absorbed.
+    posed_index = {id(f): i for i, f in enumerate(posed)}
+    groups_posed, unfusable = [], []
+    for g in groups_full:
+        idx = [posed_index[id(frames[i])] for i in g if id(frames[i]) in posed_index]
+        if len(idx) >= MIN_SEGMENT_LEN:
+            groups_posed.append(idx)
+        elif idx:
+            unfusable.append(len(idx))
+    report["unfusable_candidates"] = unfusable
+    if len(groups_posed) <= 1:
+        report["reason"] = (f"{len(groups_full)} candidate room(s) found from crossings, but "
+                            f"only {len(groups_posed)} had enough posed frames to fuse")
+        return None, report
+
+    prior = None
+    if tier == "lidar":
+        from pipeline.capture.lidar import ARKIT_WORLD_UP
+        prior = ARKIT_WORLD_UP
+    walls_per_group, centroids = [], []
+    for idx in groups_posed:
+        fc = fuse_frames([posed[i] for i in idx], stride=4)   # coarse: only walls are needed
+        if not len(fc.points):
+            walls_per_group.append([])
+            centroids.append(None)
+            continue
+        centroids.append(fc.points.mean(axis=0))
+        planes = merge_coplanar(extract_planes(fc.points, fc.normals,
+                                               threshold=plane_threshold), fc.points)
+        g = estimate_gravity(planes, prior=prior)
+        got = fit_floor_ceiling(fc.points, fc.normals, threshold=plane_threshold,
+                                gravity_prior=g, camera_at_origin=False)
+        walls_per_group.append(got[3] if got else [])
+
+    merged, owner = reidentify_rooms(groups_posed, walls_per_group, centroids)
+    report["revisits_merged"] = sum(1 for i, o in enumerate(owner) if o != i)
+    if len(merged) <= 1:
+        report["reason"] = (f"{len(groups_posed)} candidate room(s) all re-identified as the "
+                            f"same room")
+        return None, report
+
+    report["rooms_confirmed"] = len(merged)
+    return merged, report

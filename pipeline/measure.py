@@ -230,52 +230,76 @@ def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
     result["posed_frames"] = len(posed)
 
     stitched = False
-    if len(posed) >= 6 and room.tier in ("video", "lidar"):
+    if len(frames) >= 6 and room.tier in ("video", "lidar"):
         # A continuous video/lidar capture that walked through several rooms is not
         # detectable from the tier alone - our own captures are each one room, and there is
-        # no flag for "this one has more". Segmentation answers it from the trajectory
-        # itself: a single-room walk produces one dense cluster and one segment, so this
-        # check is safe to run unconditionally rather than needing to be opted into. See
-        # `pipeline/geometry/segment.py` for why the trajectory, not the point cloud, is
-        # what gets clustered, and `benchmark/results/multiview_findings.md`-style honesty
-        # note: neither our video nor LiDAR raw capture is multi-room today, so this path is
-        # validated on synthetic ground truth (tests/test_stitching.py) until a re-shoot.
-        from pipeline.geometry.segment import segment_rooms
-        # A coarse, heavily-strided fuse purely to get a gravity direction for projecting the
-        # trajectory onto the floor plane - discarded immediately after. It never feeds into
-        # any reported measurement: if this capture turns out to be one room, `_measure_cloud`
-        # below computes its own gravity from the properly-strided fused cloud, exactly as it
-        # always has; if it is several rooms, `stitch_posed_capture` re-estimates gravity
-        # itself, at the finer stride each room's own measurement uses.
-        quick = fuse_frames(posed, stride=8)
-        quick_prior = None
-        if room.tier == "lidar":
-            from pipeline.capture.lidar import ARKIT_WORLD_UP
-            quick_prior = ARKIT_WORLD_UP
-        if len(quick.points):
-            from pipeline.geometry.planes import estimate_gravity, extract_planes, \
-                merge_coplanar
-            quick_planes = merge_coplanar(
-                extract_planes(quick.points, quick.normals,
-                               threshold=PLANE_THRESHOLD.get(room.tier, 0.03)), quick.points)
-            quick_gravity = estimate_gravity(quick_planes, prior=quick_prior)
-            segments = segment_rooms(posed, quick_gravity)
-            if len(segments) > 1:
-                from pipeline.stitching.stitch import stitch_posed_capture
-                stitch_result = stitch_posed_capture(posed, room, segments, room.tier,
-                                                     drift_correction=drift_correction)
-                if stitch_result is not None:
-                    result["mode"] = "stitched"
-                    result.update(stitch_result)
-                    stitched = True
-                else:
-                    # Segmentation proposed a split; nothing confirmed it as real (no shared
-                    # wall between any pair - see find_adjacent_rooms). Falling through to the
-                    # single-room path below measures every posed frame as one room, which is
-                    # what this capture was until proven otherwise.
-                    result["segmentation_rejected"] = (
-                        f"{len(segments)} segment(s) proposed from the trajectory, but no "
-                        f"pair could be confirmed as separate rooms; measuring as one room")
+        # no flag for "this one has more". Segmentation answers it, in two stages:
+        #
+        # 1. DOORWAY CROSSINGS, on every sampled frame (posed or not). A room change is
+        #    confirmed by the scene itself changing sharply - passing through a doorway - not
+        #    inferred from where a successfully-posed camera happened to sit. This is the
+        #    PRIMARY method because it survives exactly the case that breaks the fallback: on
+        #    the real 60-keyframe capture only 14 of 60 frames posed at all, and 14 positions
+        #    spread across two rooms never built enough camera-density in any one grid cell
+        #    for the trajectory method below to see a room. Crossing detection needs no pose.
+        #
+        # 2. TRAJECTORY DENSITY (`segment_rooms`), only if (1) finds nothing. Kept rather than
+        #    replaced: it is what is validated on the one real multi-room result this project
+        #    has produced so far, and a capture with near-complete posing (LiDAR, most of the
+        #    time) gains nothing from crossing detection that density clustering does not
+        #    already give it more cheaply.
+        #
+        # A single-room walk triggers neither: no crossing is ever detected, and density
+        # clustering finds one dense cluster - so this check is safe to run unconditionally.
+        from pipeline.geometry.segment import segment_rooms, segment_rooms_by_doorway
+        segments, seg_report = segment_rooms_by_doorway(
+            frames, posed, room.tier, PLANE_THRESHOLD.get(room.tier, 0.03))
+        result["doorway_segmentation"] = seg_report
+
+        if segments is None and len(posed) >= 6:
+            # A coarse, heavily-strided fuse purely to get a gravity direction for projecting
+            # the trajectory onto the floor plane - discarded immediately after. It never
+            # feeds into any reported measurement: if this capture turns out to be one room,
+            # `_measure_cloud` below computes its own gravity from the properly-strided fused
+            # cloud, exactly as it always has; if it is several rooms, `stitch_posed_capture`
+            # re-estimates gravity itself, at the finer stride each room's measurement uses.
+            quick = fuse_frames(posed, stride=8)
+            quick_prior = None
+            if room.tier == "lidar":
+                from pipeline.capture.lidar import ARKIT_WORLD_UP
+                quick_prior = ARKIT_WORLD_UP
+            if len(quick.points):
+                from pipeline.geometry.planes import estimate_gravity, extract_planes, \
+                    merge_coplanar
+                quick_planes = merge_coplanar(
+                    extract_planes(quick.points, quick.normals,
+                                   threshold=PLANE_THRESHOLD.get(room.tier, 0.03)),
+                    quick.points)
+                quick_gravity = estimate_gravity(quick_planes, prior=quick_prior)
+                density_segments = segment_rooms(posed, quick_gravity)
+                if len(density_segments) > 1:
+                    segments = density_segments
+                    result["doorway_segmentation"]["fallback"] = "trajectory density"
+
+        # `segments` is only ever non-None with length > 1 here: `segment_rooms_by_doorway`
+        # returns None below 2 confirmed rooms, and the density fallback only overwrites
+        # `segments` when it found more than one cluster. So reaching here IS the split.
+        if segments is not None:
+            from pipeline.stitching.stitch import stitch_posed_capture
+            stitch_result = stitch_posed_capture(posed, room, segments, room.tier,
+                                                 drift_correction=drift_correction)
+            if stitch_result is not None:
+                result["mode"] = "stitched"
+                result.update(stitch_result)
+                stitched = True
+            else:
+                # Segmentation proposed a split; nothing confirmed it as real (no shared wall
+                # between any pair - see find_adjacent_rooms). Falling through to the
+                # single-room path below measures every posed frame as one room, which is
+                # what this capture was until proven otherwise.
+                result["segmentation_rejected"] = (
+                    f"{len(segments)} segment(s) proposed, but no pair could be confirmed as "
+                    f"separate rooms; measuring as one room")
 
     if stitched:
         pass                              # stitch_posed_capture already measured everything

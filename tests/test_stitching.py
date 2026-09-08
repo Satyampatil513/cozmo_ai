@@ -402,6 +402,134 @@ def test_drift_ablation_shows_a_real_delta():
               f"{on['drift_correction']['footprint_after_m2']} m2 - informational only)")
 
 
+# ------------------------------------------------------- doorway-crossing segmentation
+
+def _textured_frame(pattern: np.ndarray, jitter_seed: int) -> "Frame":
+    """A frame whose `.image` actually has SIFT-detectable structure.
+
+    The camera-rendered frames elsewhere in this file carry a flat black placeholder image
+    (only depth matters to the geometry they test) - fine for wall fitting, useless for
+    testing a detector that reads `.image`: SIFT finds zero keypoints on a blank frame, so
+    every pairwise similarity would be 0 regardless of whether a transition genuinely
+    happened. `pattern` is one room's fixed texture; small per-frame noise stands in for a
+    slightly different viewpoint of the same real surface, which is what keeps consecutive
+    frames of the SAME room highly self-similar without being pixel-identical.
+    """
+    rng = np.random.default_rng(jitter_seed)
+    noisy = np.clip(pattern.astype(np.int16) + rng.integers(-8, 8, pattern.shape), 0, 255)
+    return Frame(image_path=f"tex_{jitter_seed}.png", image=noisy.astype(np.uint8))
+
+
+def _room_texture(seed: int, size=(160, 120)) -> np.ndarray:
+    """A random but STRUCTURED image - blurred noise, not pure static - so SIFT finds real
+    corner-like keypoints rather than being defeated by uncorrelated pixel noise."""
+    import cv2
+    rng = np.random.default_rng(seed)
+    base = rng.integers(0, 255, (size[1], size[0]), dtype=np.uint8)
+    base = cv2.GaussianBlur(base, (0, 0), sigmaX=1.5)
+    return np.stack([base] * 3, axis=-1)
+
+
+def test_doorway_crossing_detected_between_different_rooms():
+    from pipeline.geometry.segment import detect_transitions, segment_by_doorway_crossings
+
+    tex_a, tex_b = _room_texture(1), _room_texture(2)
+    frames = ([_textured_frame(tex_a, i) for i in range(6)]
+             + [_textured_frame(tex_b, 100 + i) for i in range(6)])
+
+    trace = detect_transitions(frames)
+    check("a trace entry exists for every consecutive pair", len(trace) == len(frames) - 1,
+          f"got {len(trace)}")
+    flagged = [t["index"] for t in trace if t["is_transition"]]
+    check("exactly one crossing detected, at the room boundary", flagged == [5],
+          f"flagged {flagged}, similarities {[round(t['similarity'], 2) for t in trace]}")
+
+    groups, _trace = segment_by_doorway_crossings(frames)
+    check("segmentation splits at the detected crossing", len(groups) == 2,
+          f"got {len(groups)} group(s): {groups}")
+    if len(groups) == 2:
+        check("group membership matches the two textures exactly",
+              groups[0] == list(range(6)) and groups[1] == list(range(6, 12)),
+              f"got {groups}")
+
+
+def test_no_crossing_within_one_textured_room():
+    """The negative control: consistent texture throughout must NOT be cut anywhere - a
+    detector that fires on noise alone would fabricate rooms out of a single steady walk."""
+    from pipeline.geometry.segment import segment_by_doorway_crossings
+
+    tex = _room_texture(3)
+    frames = [_textured_frame(tex, i) for i in range(10)]
+    groups, trace = segment_by_doorway_crossings(frames)
+    check("one consistent texture throughout produces exactly one segment", len(groups) == 1,
+          f"got {len(groups)} group(s), transitions "
+          f"{[t['index'] for t in trace if t['is_transition']]}")
+
+
+def test_reidentify_rooms_merges_a_revisit():
+    """"After getting out from the same door, we know we are back at the previous room":
+    a third segment whose walls AND location coincide with the FIRST segment's (not the
+    second's) must be folded back into the first, not kept as a spurious third room.
+
+    Room A and room B sit side by side and, deliberately, SHARE the line their front and back
+    walls extend along - a real bug found here on the first version of this test, which
+    matched purely on (normal, offset) and merged two adjacent-but-different rooms because
+    they shared that corridor line. Centroids are what tells them apart: A and B sit far
+    apart, while A and "A again" sit in the same place.
+    """
+    from pipeline.geometry.planes import Plane
+    from pipeline.geometry.segment import reidentify_rooms
+
+    room_a_walls = [Plane(normal=np.array([1.0, 0.0, 0.0]), d=0.0),
+                   Plane(normal=np.array([0.0, 1.0, 0.0]), d=0.0),
+                   Plane(normal=np.array([-1.0, 0.0, 0.0]), d=4.0),
+                   Plane(normal=np.array([0.0, -1.0, 0.0]), d=3.0)]
+    # Room B: adjacent, sharing the y=0/y=3 line with room A (an ordinary row-of-rooms floor
+    # plan), so it deliberately matches 2 of room A's 4 walls on (normal, offset) alone.
+    room_b_walls = [Plane(normal=np.array([1.0, 0.0, 0.0]), d=4.0),
+                   Plane(normal=np.array([0.0, 1.0, 0.0]), d=0.0),
+                   Plane(normal=np.array([-1.0, 0.0, 0.0]), d=7.5),
+                   Plane(normal=np.array([0.0, -1.0, 0.0]), d=3.0)]
+    # A revisit of room A: the SAME four planes, each within tolerance of the first visit.
+    room_a_again = [Plane(normal=w.normal.copy(), d=w.d + 0.02) for w in room_a_walls]
+
+    centroid_a = np.array([2.0, 1.5, 1.35])            # centre of room A's 4x3 footprint
+    centroid_b = np.array([5.75, 1.5, 1.35])           # centre of room B's 3.5x3 footprint
+    centroid_a_again = centroid_a + np.array([0.05, -0.03, 0.0])   # same place, small drift
+
+    groups = [[0, 1], [2, 3], [4, 5]]
+    merged, owner = reidentify_rooms(groups, [room_a_walls, room_b_walls, room_a_again],
+                                     [centroid_a, centroid_b, centroid_a_again])
+    check("the revisit is folded into the first segment, not kept separate", len(merged) == 2,
+          f"got {len(merged)} group(s), owner={owner}")
+    check("room A's frames end up together (original + revisit)",
+          owner[0] == owner[2] and owner[0] != owner[1],
+          f"owner={owner}")
+
+
+def test_reidentify_rooms_does_not_merge_adjacent_rooms_sharing_a_wall_line():
+    """The regression for the bug found while writing the test above: room A and room B are
+    genuinely different rooms that happen to share the line their side walls sit on. Wall
+    matching alone calls that "2 of 4 walls coincide" - centroid distance must still keep
+    them apart."""
+    from pipeline.geometry.planes import Plane
+    from pipeline.geometry.segment import reidentify_rooms
+
+    room_a_walls = [Plane(normal=np.array([1.0, 0.0, 0.0]), d=0.0),
+                   Plane(normal=np.array([0.0, 1.0, 0.0]), d=0.0),
+                   Plane(normal=np.array([-1.0, 0.0, 0.0]), d=4.0),
+                   Plane(normal=np.array([0.0, -1.0, 0.0]), d=3.0)]
+    room_b_walls = [Plane(normal=np.array([1.0, 0.0, 0.0]), d=4.0),
+                   Plane(normal=np.array([0.0, 1.0, 0.0]), d=0.0),
+                   Plane(normal=np.array([-1.0, 0.0, 0.0]), d=7.5),
+                   Plane(normal=np.array([0.0, -1.0, 0.0]), d=3.0)]
+    groups = [[0, 1], [2, 3]]
+    merged, owner = reidentify_rooms(groups, [room_a_walls, room_b_walls],
+                                     [np.array([2.0, 1.5, 1.35]), np.array([5.75, 1.5, 1.35])])
+    check("two different rooms sharing a wall LINE stay separate", len(merged) == 2,
+          f"got {len(merged)} group(s), owner={owner}")
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):
