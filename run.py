@@ -258,7 +258,21 @@ def main() -> int:
     print(f"wrote {out_path}")
     if args.debug:
         print(f"wrote diagnostic overlays to {os.path.join(args.out, 'debug')}/")
-    print("NOT BUILT: multi-room stitching, damage detection, rendered plan")
+    if blueprint_report is not None:
+        print(f"wrote {os.path.join(args.out, 'blueprint.png')} and .svg "
+              f"({blueprint_report['rooms_drawn']} room(s) drawn"
+              + (f", {len(blueprint_report['rooms_unplaced'])} NOT drawn - no closed polygon: "
+                 f"{blueprint_report['rooms_unplaced']}"
+                if blueprint_report['rooms_unplaced'] else "") + ")")
+    # Stated once, honestly, rather than as a blanket line every run repeats regardless of
+    # what just happened: stitching and the blueprint are built for video/lidar and ran on
+    # THIS capture whenever it produced more than one room; photo-tier stitching and damage
+    # detection are not built at all, on any capture.
+    not_built = ["damage detection"]
+    if not any(r.get("mode") == "stitched" for r in rooms):
+        not_built.insert(0, "multi-room stitching (photo-tier needs doorway-pair shots; "
+                            "video/lidar needs >1 room detected in this capture)")
+    print(f"NOT BUILT: {', '.join(not_built)}")
     return 0
 
 
