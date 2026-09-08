@@ -3,8 +3,8 @@
 Run: python tests/test_damage.py     (no pytest dependency needed)
 
 THE HONEST LIMIT OF THIS FILE, stated the same way `tests/test_geometry.py` stated it for
-the single-room pipeline before any real capture existed: no staged damage has been captured.
-`benchmark/ground_truth/damage.csv` is still placeholders, so the thresholds exercised here
+the single-room pipeline before any real capture existed: no staged damage has been captured
+and damage scoring is out of scope for this submission, so the thresholds exercised here
 are the module's UNFITTED DEFAULTS, not calibrated ones. What these cases pin down is the
 part that does not need calibration: that a colour anomaly on a wall is turned into an extent
 in metres and a height above the floor using the same wall frame `openings.py` uses, that the

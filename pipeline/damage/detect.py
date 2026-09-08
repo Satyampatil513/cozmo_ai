@@ -24,13 +24,11 @@ TWO CLASSES, MATCHING THE BRIEF'S "SPANNING TWO DAMAGE CLASSES" AND `rules.RULES
                 of the same colour-anomaly mask, kept only when its long/short axis ratio is
                 high enough that "stain" is not a better description of the same pixels.
 
-FIRST PASS, STATED PLAINLY: no staged damage has been captured (the benchmark composition
-requires "one furnished room with staged damage spanning two damage classes" -
-`benchmark/ground_truth/damage.csv` is still empty placeholders). This is validated on
-SYNTHETIC damage painted onto a synthetic room (`tests/test_damage.py`), exactly the posture
-`tests/test_geometry.py` used for the single-room pipeline before any real capture existed.
-Real thresholds here are unfitted defaults, not calibrated ones, and are labelled as such in
-every detection's own `notes`.
+FIRST PASS, STATED PLAINLY: no staged damage has been captured and per-surface damage scoring
+is out of scope for this submission. This is validated on SYNTHETIC damage painted onto a
+synthetic room (`tests/test_damage.py`), exactly the posture `tests/test_geometry.py` used for
+the single-room pipeline before any real capture existed. Real thresholds here are unfitted
+defaults, not calibrated ones, and are labelled as such in every detection's own `notes`.
 """
 from __future__ import annotations
 

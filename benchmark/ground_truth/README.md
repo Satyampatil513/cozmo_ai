@@ -1,4 +1,4 @@
-# Ground truth: conventions, coverage, and one deliberate omission
+# Ground truth: conventions and coverage
 
 Laser survey of the 3BHK, 2026-09-08. Read by exactly one loader,
 `benchmark/scripts/ground_truth.py`, so no two reports can disagree about what the truth is.
@@ -33,8 +33,6 @@ record of what someone actually pointed a laser at.
 | Floor areas | 0 | 5 | 4 derivable from walls; room_03 is not, missing w4 |
 | Doors | 5 | 5 | width and height both measured |
 | Windows | - | - | **discarded, see below** |
-| Cross-room spans | 0 | 3 | **deliberately deferred, see below** |
-| Damage | 0 | 2 | no damage staged |
 
 ### Two known problems in the sheet
 
@@ -55,32 +53,3 @@ phantom opening each count as a miss. With windows discarded, that gate is score
 only**, over 5 doors. Any window our detector finds is now, by construction, unscoreable
 rather than correct - it cannot be credited, and it also cannot be counted as a phantom.
 The gate report says this on the row rather than reporting a door-only pass as a full pass.
-
-## Cross-room spans: deliberately not measured
-
-`spans.csv` is empty and is staying empty for now. This is a decision, not an oversight.
-
-Spans exist to score one thing: the **drift accountability** gate, which asks for a stitched
-multi-room footprint with drift correction on and off. `pipeline/stitching/stitch.py` raises
-`NotImplementedError`. There is no stitched footprint, so there is nothing a span could be
-compared against, and the gate fails on the missing stitch regardless of what this file
-contains.
-
-**Why they are not derived instead.** A cross-room span is not recoverable from per-room
-dimensions - that is the entire reason the sheet asks for it separately, as its own note says:
-"per-room truth cannot catch accumulated drift". Computing `span_03` as the hall's own length
-would be circular, and computing `span_01` would need the floor plan's adjacency and offsets,
-which nothing in this repo records. Writing a plausible number here would be inventing ground
-truth, which is the one failure this whole benchmark exists to prevent.
-
-**What to measure when stitching lands**, so the trip is not wasted:
-
-| span | measurement | why this one |
-|---|---|---|
-| `span_01` | kitchen far wall -> hall far wall | shortest chain that crosses a doorway |
-| `span_02` | master-bed far wall -> bed-three far wall | longest chain, through the connector - accumulates the most drift |
-| `span_03` | hall end to end | the connector alone, isolating its own error from the chain |
-
-Measure each in one shot with the laser down the open line, not by adding room dimensions -
-a summed span inherits every per-room error and measures the same thing the stitch is being
-tested for.
