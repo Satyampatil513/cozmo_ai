@@ -66,19 +66,22 @@ ceiling heights on real frames.
 
 ![Input, depth, planes, classification](report_assets/01_single_frame_geometry.png)
 
-*Room corners* come from intersecting adjacent wall planes with the floor, kept or rejected
-with a stated reason:
-
-![Accepted corner from wall-wall-floor intersection](report_assets/03_corners.jpg)
-
-*The room polygon and area* follow directly, with a confidence interval on every number:
-
-![Closed room polygon: 12.53 m², ceiling 2.33 m](report_assets/04_room_polygon.jpg)
+*Corners* come from intersecting adjacent wall planes with the floor, kept or rejected with a
+stated reason — but a corner is only as correct as the floor it's intersected against, and
+closing corners into a full room polygon is currently fragile: across every real capture this
+session, exactly one room ever closed a polygon at all, and its own floor turned out to be a
+bed (§7 — the same failure is not a separate bug, it is the same one shown twice). **The
+dimension that is actually reliable is wall-pair separation** — the distance between two
+opposite wall planes, needing no closed polygon and no correct floor: LiDAR wall pair
+**3.60 m vs 3.54 m tape, +1.8%**. Corners and the polygon remain useful for area and adjacency
+once the floor is right; they are not yet the load-bearing measurement.
 
 *Openings* are found as holes in a wall's own point support — not a lifted 2D detection box,
-which inherits depth error exactly where depth is worst:
+which inherits depth error exactly where depth is worst. The door here is clean; the window's
+height overshoots the true glass into the sill ledge below it, and the detector's own
+confidence (0.69, against 0.81 for the door) already says so:
 
-![Detected window, width/height/sill labelled](report_assets/05_openings.png)
+![Detected door (clean) and window (height overshoots into the sill), correctly projected onto the source photo](report_assets/05_openings.png)
 
 ---
 
@@ -165,6 +168,17 @@ with the diagnostic overlays. The `bounding` signal can't reject it because the 
 never in frame; the bed genuinely is the lowest surface in that cloud.
 
 ![Bed classified as floor: reported ceiling 2.29 m against 2.64 m true](report_assets/02_failure_bed_as_floor.png)
+
+The same failure, not a different one, propagates downstream: the corner-finding and
+room-polygon code are themselves correct — given a floor, they intersect walls against it and
+close a polygon exactly as designed — but a corner intersected against the bed is a corner at
+bed height, and a "closed polygon" over the bed reports a ceiling 33 cm short of true. (An
+earlier draft of this report used these two images as a *success* example, on the strength of
+the polygon actually closing, without checking which floor it had closed against. It hadn't
+checked far enough — this is that correction.)
+
+![The "accepted" corner sits at bed height, not floor height](report_assets/10_bed_as_floor_corners.jpg)
+![The "closed" polygon: area and ceiling height both computed from the bed](report_assets/11_bed_as_floor_polygon.jpg)
 
 **The room polygon fails when a capture spills into the next space.** `select_room_walls`
 requires nothing behind a wall; a doorway lets the sensor see past it, so nothing qualifies.
