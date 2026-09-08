@@ -46,7 +46,7 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 2.9 | Confidence interval on every measurement | pipeline/confidence/intervals.py | Measurement | PARTIAL |
 | 2.10 | One command per capture | run.py | CLI, all 3 tiers | DONE |
 | 2.11 | JSON to published schema | schemas/output.schema.json | schema | PARTIAL - emitted, not yet validated in CI |
-| 2.12 | Rendered plan | pipeline/output/render.py | SVG + PNG | NOT BUILT |
+| 2.12 | Rendered plan | pipeline/output/render.py | SVG + PNG | PARTIAL - draws a stitched video/lidar property (room polygons, dims with interval width, connections); single-room/photo has no adjacency to draw and is out of scope for this renderer |
 
 ## Open interpretation: which gates loosen at the photo and video tiers
 

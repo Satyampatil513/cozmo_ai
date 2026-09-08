@@ -469,6 +469,28 @@ def stitch_posed_capture(posed_frames: list[Frame], room: RoomCapture,
             sub_rooms[i]["polygon"]["world_origin"] = (
                 None if geoms[i] is None else np.round(geoms[i].origin, 4).tolist())
 
+    # Confidence intervals, per sub-room - `measure_room`'s tail does this for a single-room
+    # capture, but a stitched result never reaches that tail (it returns through the
+    # `stitched` branch instead), so a blueprint drawn from `sub_rooms` alone would show bare
+    # numbers with no interval - exactly "confident garbage" dressed as a measurement, which
+    # is the one thing this whole pipeline is built to avoid. Same functions, same scale
+    # object the single-room path already uses.
+    from pipeline.confidence.intervals import area_measurement, length_measurement
+    from pipeline.types import Scale
+    scale = room.scale or Scale()          # same defensive default measure_room's tail uses
+    for sr in sub_rooms:
+        if sr.get("ceiling_height") is not None:
+            sr["ceiling_height_measurement"] = length_measurement(
+                sr["ceiling_height"], tier, scale, "floor-to-ceiling plane separation "
+                                                        "(stitched)").to_json()
+        poly = sr.get("polygon")
+        if poly:
+            sr["wall_length_measurements"] = [
+                length_measurement(L, tier, scale, "corner-to-corner (stitched)").to_json()
+                for L in poly["wall_lengths"]]
+            sr["floor_area_measurement"] = area_measurement(
+                poly["floor_area"], tier, scale, "polygon area (stitched)").to_json()
+
     return {
         "sub_rooms": sub_rooms,
         "connections": connections,

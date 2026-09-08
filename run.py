@@ -209,6 +209,18 @@ def main() -> int:
     with open(out_path, "w") as fh:
         json.dump(result, fh, indent=2, cls=_NpEncoder)
 
+    blueprint_report = None
+    if any(r.get("mode") == "stitched" for r in rooms):
+        # A blueprint is only meaningful once there is more than one room to place relative
+        # to another - a single unstitched room has no adjacency to draw. Written from the
+        # SAME dict just serialised to result.json, via json round-trip, so the renderer is
+        # exercised against exactly what a caller re-reading result.json later would see,
+        # not a richer in-memory object this process happens to still be holding.
+        from pipeline.output.render import render_plan
+        blueprint_report = render_plan(
+            json.loads(json.dumps(result, cls=_NpEncoder)),
+            os.path.join(args.out, "blueprint.svg"), os.path.join(args.out, "blueprint.png"))
+
     print(f"\ntier={tier}  commit={result['capture']['pipeline_commit']}  "
           f"{result['timing_seconds']}s")
     for r in rooms:
