@@ -41,6 +41,7 @@ flowchart TD
     MAN --> CH[ceiling height]
     MAN --> WP[wall-pair spans]
     MAN --> OP[openings as holes]
+    MAN --> DMG["photo per-frame only: colour-anomaly damage → concealed-damage rules → scope items"]
 
     MAN --> SEG["video/lidar only: doorway-crossing segmentation → per-room walls"]
     SEG --> ADJ["adjacency + drift correction → blueprint"]
@@ -48,6 +49,7 @@ flowchart TD
     CH --> OUT
     WP --> OUT
     OP --> OUT
+    DMG --> OUT
     ADJ --> OUT
 
     subgraph output["output/"]
@@ -128,8 +130,12 @@ room, then adds:
   *and* its centroid sits in the same place (wall-matching alone is fooled by two different
   rooms sharing a corridor wall-line — found and fixed as a real bug, not hypothesised).
 - **Plane-anchored drift correction** — each room's *position* (not its own shape) is nudged
-  vertically to a shared floor level and horizontally along matched walls. The on/off ablation
-  the brief requires is a real, computed number, not a description.
+  vertically to a shared floor level and horizontally along matched walls. The brief's on/off
+  ablation is `benchmark/scripts/ablation.py`: on a synthetic two-room flat with a known
+  shared wall and injected drift, "poses used as-is" leaves a **14.1 cm** gap between the two
+  rooms' copies of that wall; correction closes it to **0.0 cm**, and the no-drift control row
+  confirms it is a near no-op when there is nothing to correct. No real capture has closed a
+  multi-room stitch to run this on (§7), so it is synthetic ground truth.
 
 **Photo-tier property stitching** turned out not to need a separate capture protocol. The
 same cycle-gated registration above never assumed its photos all came from one room — that
@@ -255,9 +261,11 @@ before it reaches a confident 9-room stitch.
 
 `pipeline/damage/` was three `NotImplementedError` stubs. It is now a working first pass —
 detection, concealed-damage rules, scope line items — unit-tested on synthetic damage
-(`tests/test_damage.py`, 8 checks). It is **not wired into `run.py`**: the
-`detect(frame, surfaces)` entry point still raises, because no staged-damage capture exists to
-validate a `measure.py` hook against (`benchmark/ground_truth/damage.csv` is placeholder rows).
+(`tests/test_damage.py`, 8 checks). It runs on the **per-frame path** (photo tier, where the
+source RGB and a per-point pixel mapping exist) and its regions, concealed-damage flags and
+scope items are emitted in the schema output. No damage was staged and per-surface damage
+scoring is out of scope for this submission, so the thresholds are unfitted defaults and the
+first pass below is shown for what the approach looks like, not as a scored result.
 
 **Method.** Detection runs in image space — a stain or a spalled patch is a colour anomaly,
 not something depth shows — but every reported extent is metric. Each region is rasterised
@@ -281,31 +289,20 @@ unfitted thresholds, no ground truth:
 | Clean frames | 1 of 6 (IMG_0445 — no false positives) |
 | Concealed-damage rules fired | 2, both `CONCEAL-WATER-02` (IMG_0444) |
 
-What it got right:
+**Right:** on IMG_0446 two regions land squarely on the real spalled-plaster band at the base
+of the wall, both sides of the doorway — and that low-wall geometry is exactly what triggers
+`CONCEAL-WATER-02`, the correct rule for what is physically there.
 
-- **IMG_0446** — two regions land squarely on the real spalled-plaster band at the base of
-  the wall, both sides of the doorway. Right location, right "damage low on a wall" signal.
-- That low-wall geometry is exactly what triggers `CONCEAL-WATER-02` ("substrate and skirting
-  saturation behind the finish") — the correct rule for what is physically there.
+**Wrong:** class is noisy (the same band is `crack` in two frames, `water_stain` in a third —
+in IMG_0439 that misclassification stops `CONCEAL-WATER-02` firing); high false-positive load
+(poster collage, framed mirror, guitar, patterned bedsheet — any hard colour edge on a plane
+RANSAC accepted as a wall); no cross-frame association, so the one damp band is counted 2–4
+times; and height-above-floor runs −0.02 m to 2.65 m on the per-frame path, so the
+`max_height_m = 0.5` rule gate cannot defend itself.
 
-What it got wrong:
-
-- **Class is unreliable.** The same damp/spalled band is `crack` in IMG_0446 and IMG_0439,
-  `water_stain` in IMG_0444 — the aspect ratio of an irregular real patch is noisy. In
-  IMG_0439 the misclassification cost a flag directly: the band at floor level was labelled
-  `crack`, so `CONCEAL-WATER-02` — a `water_stain` rule — never got to fire on it.
-- **High false-positive load.** By eye, most of the 20 regions are the poster collage, the
-  framed mirror, the guitar, the curtain edge, and the patterned bedsheet (IMG_0440's two
-  "cracks" are both on the duvet) — any hard colour edge on a plane RANSAC accepted as a wall.
-- **No cross-frame association** — the one physical damp band is counted 2–4 times.
-- **Height-above-floor is unreliable on the per-frame path** — values run −0.02 m to 2.65 m;
-  the 2.65 m "wall" stain is really the ceiling stain around the fan, assigned to a wall
-  plane. The `max_height_m = 0.5` rule gate cannot defend itself on a floor estimate that loose.
-
-**Before this pass is trustworthy** it needs: staged damage with tape-measure ground truth to
-calibrate the colour threshold and set a real class boundary; a texture/edge filter to reject
-posters, mirrors, and fabric; cross-frame region association; and correct surface assignment,
-so a ceiling stain reaches `CONCEAL-WATER-01` instead of a wall rule.
+**Before it is trustworthy:** staged damage with ground truth to fit the colour threshold and
+class boundary, a texture filter to reject posters and fabric, cross-frame association, and
+correct wall-vs-ceiling surface assignment.
 
 ---
 
@@ -316,10 +313,12 @@ so a ceiling stain reaches `CONCEAL-WATER-01` instead of a wall rule.
 | All 3 tiers, one command, one output contract | Done |
 | Photo multi-view registration, cycle-verified | Done |
 | Video/LiDAR multi-room stitching + blueprint | Built, synthetic-validated; no real multi-room result has closed yet (§7) |
+| Drift accountability, on/off ablation | Done — `benchmark/scripts/ablation.py`, synthetic: 14.1 cm shared-wall gap "poses as-is" → 0.0 cm corrected (§4) |
 | Fix loop, declared and shipped | Done |
 | Ceiling / wall gates | Fail — root cause identified, not a mystery |
-| Repeatability gate | Unscoreable. The gate needs one room captured twice at one tier with per-wall lengths from each run. The two real video captures (IMG_0460, IMG_0462) are multi-room walkthroughs with no room correspondence and no closing polygon (§7 — odometry posts 14–16 / 4 of their frames); the only scalar both runs produce, ceiling height, disagrees by 19 cm (2.83 m vs 3.02 m) |
-| Head-to-head vs incumbent | Not built |
-| Damage detection | First pass built, synthetic-tested; run once against real Room 1 (§8). Not wired into `run.py` — no staged-damage capture to validate the hook |
+| Calibration, scored per tier | Done — `benchmark/scripts/calibrate.py`. Photo intervals cover ~50% at nominal 95%: bias-dominated, not an interval-width problem |
+| Repeatability gate | **Fail — unrepeatable.** Checked at the video tier: two independent walkthroughs of the same property (IMG_0460, IMG_0462) agree only on ceiling height — the one scalar both produce — and it disagrees by **18.8 cm** (2.830 m vs 3.018 m), against a 1 cm gate. Not repeatable-but-biased; genuinely unrepeatable. Neither clip closes a polygon or resolves per-room correspondence (§7 — odometry posts 14–16 / 4 of their frames), so there are no per-wall lengths to compare. |
+| Head-to-head vs incumbent | Out of scope (confirmed with the team) |
+| Damage detection | First pass built, wired on the per-frame path and emitted in the schema output; synthetic-tested and run against real Room 1 (§8). Unfitted thresholds — out of scope for scoring |
 
 Full row-by-row detail: `docs/COMPLIANCE_MATRIX.md`. Reproduction commands: `README.md`.

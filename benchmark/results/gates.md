@@ -152,7 +152,7 @@ Ground truth: `benchmark/ground_truth/`, laser survey. Ceiling 2.74 m (supersede
 | Gate | Status | Why |
 |---|---|---|
 | openings | **SCOREABLE** | <= 2 cm on >= 85% |
-| repeatability | **UNSCOREABLE** | no room has been captured twice at the same tier |
-| drift_ablation | **FAIL** | multi-room stitching is NOT BUILT, so there is no stitched footprint to ablate. Within a room, photo multiview now rejects inconsistent poses by cycle consistency (see multiview_findings.md), but the brief's row is about accumulated drift across rooms and that is not addressed |
-| photo_stitch | **FAIL** | pipeline/stitching/stitch.py raises NotImplementedError |
-| head_to_head | **NOT BUILT** | no incumbent app export captured |
+| repeatability | **FAIL** | checked at the video tier: two walkthroughs of the same property (IMG_0460, IMG_0462) agree only on ceiling height, which disagrees by 18.8 cm (2.830 m vs 3.018 m). Unrepeatable, not repeatable-but-biased. Neither clip closes a polygon, so there are no per-wall lengths to compare |
+| drift_ablation | **BUILT** | plane-anchored correction, not 'poses as-is'. On/off ablation is benchmark/scripts/ablation.py (benchmark/results/drift_ablation.md): on a synthetic two-room flat with injected drift, the shared-wall gap is 14.1 cm with correction OFF and 0.0 cm ON. No real capture has closed a multi-room stitch to run this on (docs/TECHNICAL_REPORT.md sections 4, 7) |
+| photo_stitch | **FAIL** | stitch_photo_property() runs on the real 5-room set but rejects every cross-room edge (implausible camera height, or depth-scale ratio outside sanity) - none of that overlap was deliberately shot. Correct refusal, but no stitched footprint is produced |
+| head_to_head | **OUT OF SCOPE** | confirmed with the team; no incumbent-app comparison in this submission |

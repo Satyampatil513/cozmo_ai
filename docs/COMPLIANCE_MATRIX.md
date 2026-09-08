@@ -21,7 +21,7 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 1.1d | Photo/video field guide | docs/capture/PHOTO_VIDEO_FIELD_GUIDE.md | procedure | DONE |
 | 1.1e | Remote dev capture brief | docs/capture/REMOTE_DEV_CAPTURE.md | brief | DONE |
 | 1.2 | Device matrix | docs/DEVICE_MATRIX.md | table | PARTIAL - accuracy columns unmeasured |
-| 1.2a | LiDAR tier fails loudly on non-Pro device | pipeline/capture/lidar.py | guard + test | NOT BUILT |
+| 1.2a | LiDAR tier fails loudly on non-Pro device | pipeline/capture/lidar.py:199 | structural guard | PARTIAL - a capture with no depth/intrinsics (what a non-Pro export is) raises `ValueError` rather than degrading to the video path. No dedicated device-name check or test asserting the failure message |
 | 1.3 | Photo tier, 2 to 8 stills, no depth, no poses | pipeline/capture/photo.py | loader | DONE |
 | 1.3a | Monocular metric depth | pipeline/capture/depth.py | Metric3D v2 backend + registry | PARTIAL - runs; backend swap took mean ceiling error +26.1% -> -12.2%, see benchmark/results/depth_backend_comparison.md |
 | 1.3b | Depth to oriented point cloud | pipeline/geometry/lift.py | lift() | DONE |
@@ -40,10 +40,10 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 2.3 | Floor area | pipeline/geometry/walls.py | measurement | PARTIAL - 12.535 m2 on photo Room 2, the only real capture that closed a polygon. Unscored: no ground truth |
 | 2.4 | Openings | pipeline/geometry/openings.py | list | PARTIAL - door height +1.9% vs tape, 1 false positive |
 | 2.5 | Stitched plan with adjacency | pipeline/stitching/stitch.py | property plan | PARTIAL - video/lidar and photo-tier stitching are both built and wired into run.py; no real capture has produced a confirmed multi-room stitch yet (real cross-room evidence has so far always been rejected by the verification gates, correctly - see docs/TECHNICAL_REPORT.md §4/§7) |
-| 2.6 | Damage regions, class + metric extent | pipeline/damage/detect.py | list | NOT BUILT |
-| 2.7 | Concealed-damage flags with rule fired | pipeline/damage/rules.py | list | NOT BUILT |
-| 2.8 | Scope line items keyed to surfaces | pipeline/damage/scope.py | list | NOT BUILT |
-| 2.9 | Confidence interval on every measurement | pipeline/confidence/intervals.py | Measurement | PARTIAL |
+| 2.6 | Damage regions, class + metric extent | pipeline/damage/detect.py, pipeline/measure.py | list in result.json | BUILT, wired on the per-frame path; emitted in the schema output (tests/test_output_schema.py). First pass, unfitted thresholds - OUT OF SCOPE for scoring (no staged damage). Technical report §8 |
+| 2.7 | Concealed-damage flags with rule fired | pipeline/damage/rules.py | concealed_flag per region | BUILT, emitted with each damage region; synthetic-tested |
+| 2.8 | Scope line items keyed to surfaces | pipeline/damage/scope.py | scope_items[] | BUILT, emitted; quantity inherited from the damage extent, never re-estimated |
+| 2.9 | Confidence interval on every measurement | pipeline/confidence/intervals.py | Measurement | PARTIAL - every ceiling/wall/area/damage measurement carries a 95% interval; the error model's (rel, abs) per tier are still the placeholder values, with the fitted numbers now produced by benchmark/scripts/calibrate.py (see 2.23) but not yet pasted in |
 | 2.10 | One command per capture | run.py | CLI, all 3 tiers | DONE |
 | 2.11 | JSON to published schema | pipeline/output/schema_adapter.py + tests/test_output_schema.py | adapter + 13/13 real results validated | PARTIAL - validates cleanly, but `walls[]` (the schema's polygon-based model) has no field for wall-pair separation, our most reliable measurement - stated in the adapter's own docstring, not silently worked around |
 | 2.12 | Rendered plan | pipeline/output/render.py | SVG + PNG | PARTIAL - draws a stitched video/lidar property (room polygons, dims with interval width, connections); single-room/photo has no adjacency to draw and is out of scope for this renderer |
@@ -69,17 +69,16 @@ than required, which costs nothing. The reverse assumption would have cost the r
 | # | Requirement | Path | Artifact | Status |
 |---|---|---|---|---|
 | 2.13 | 3+ rooms plus connector | benchmark/raw/photo | 5 rooms: 3 bedrooms, kitchen, hallway (connector) | DONE |
-| 2.14 | Furnished room, staged damage, 2 classes | benchmark/raw/ | raw data | NOT BUILT |
+| 2.14 | Furnished room, staged damage, 2 classes | - | - | OUT OF SCOPE - no damage staged; per-surface damage scoring is not part of this submission. `pipeline/damage/` exists as a synthetic-validated first pass (technical report §8), not wired into `run.py` |
 | 2.15 | Same rooms at all 3 tiers | benchmark/raw/{photo,video,lidar}/ | raw data | WAIVED by the team - see note below |
-| 2.16 | One room captured twice, same tier | benchmark/raw/ | raw data | NOT BUILT |
-| 2.17 | Tape/laser ground truth | benchmark/ground_truth/ | 4 CSVs | **NOT BUILT - all 35 rows empty.** Only ceiling height (2.64 m) exists, hardcoded in 4 scripts. This blocks 2.18-2.23 entirely |
-| 2.17a | Cross-room spans, for scoring the drift ablation | benchmark/ground_truth/spans.csv | CSV | PARTIAL - sheet ready |
-| 2.18 | Gate: opening widths, detection scored | benchmark/scripts/gates.py | report row | NOT BUILT |
-| 2.19 | Gate: ceiling height + spread | benchmark/scripts/gates.py | report row | NOT BUILT |
-| 2.20 | Gate: repeatability | benchmark/scripts/gates.py | report row | NOT BUILT |
-| 2.21 | Gate: drift, with on/off ablation | benchmark/scripts/ablation.py | two footprints | NOT BUILT |
+| 2.16 | One room captured twice, same tier | benchmark/raw/video/ | IMG_0460.MOV, IMG_0462.MOV | DONE - the property walked twice at the video tier |
+| 2.17 | Tape/laser ground truth | benchmark/ground_truth/ | laser survey | DONE - 19/20 wall lengths, 10/10 ceilings, 5/5 doors. Ceiling 2.74 m (supersedes an earlier 2.64 m tape figure). Windows discarded by the operator; `room_03_bed_two` w4 not measured |
+| 2.18 | Gate: opening widths, detection scored | benchmark/scripts/gates.py | benchmark/results/gates.md | BUILT - scored on doors only (windows discarded) |
+| 2.19 | Gate: ceiling height + spread | benchmark/scripts/gates.py | benchmark/results/gates.md | BUILT - every room scored against 2.74 m; all FAIL, root cause is depth-model scale bias (report §5/§6) |
+| 2.20 | Gate: repeatability | benchmark/scripts/gates.py | benchmark/results/gates.md | CHECKED - FAIL, unrepeatable. Video tier, two walkthroughs: ceiling height disagrees 18.8 cm (2.830 vs 3.018 m) against a 1 cm gate (report §9) |
+| 2.21 | Gate: drift, with on/off ablation | benchmark/scripts/ablation.py | benchmark/results/drift_ablation.md | BUILT - plane-anchored correction, ON vs OFF, on a synthetic two-room flat with injected drift (no real capture has closed a multi-room stitch to ablate, report §4/§7). Large drift: shared-wall gap 14.1 cm with correction OFF ("poses as-is"), 0.0 cm ON |
 | 2.22 | Gate: photo-tier whole-property stitch | pipeline/stitching/stitch.py: stitch_photo_property() | real run + edge-level positive control | BUILT, currently REJECTS on our own capture - correctly: every cross-room edge on the real 5-room set fails an existing verification gate (implausible camera height, or depth-scale ratio outside sanity), because none of that overlap was ever deliberately shot. Proven able to accept genuine cross-room evidence separately (test_stitching.py, edge-level, real 3D-3D match). The gates.py report row itself is not yet written |
-| 2.23 | Calibration scored at every tier | pipeline/confidence/calibrate.py | coverage curve | NOT BUILT |
+| 2.23 | Calibration scored at every tier | pipeline/confidence/calibrate.py, benchmark/scripts/calibrate.py | benchmark/results/calibration.md | BUILT - residuals, coverage of the current interval model at nominal 50/80/95%, and a refit per tier. Finding: photo intervals cover 50% at nominal 95% (bias-dominated, not width). Data thin: 5 photo rooms, 1 LiDAR room |
 
 ## Waived: same rooms at all three tiers (2.15)
 
@@ -98,7 +97,7 @@ between tiers does not.
 
 | # | Requirement | Path | Artifact | Status |
 |---|---|---|---|---|
-| 3.1 | Head-to-head, 2 rooms, LiDAR tier | benchmark/results/head_to_head.md | table | NOT BUILT |
+| 3.1 | Head-to-head, 2 rooms, LiDAR tier | - | - | OUT OF SCOPE - confirmed with the team; no incumbent-app comparison in this submission |
 | 4.1 | Fix declaration, one page | docs/FIX_DECLARATION.md | page + post-mortem | DONE |
 | 4.2 | Before run, regenerable | benchmark/scripts/fix_loop_photo.py | selector="largest" | DONE |
 | 4.3 | After run, regenerable | benchmark/scripts/fix_loop_photo.py | selector="joint" | DONE |
@@ -107,6 +106,6 @@ between tiers does not.
 | D.0 | Capture sessions executed | benchmark/raw/ | 29 photos / 1 clip / 1 .r3d | DONE - photo and video shot in the 3BHK; .r3d supplied by the team (different property, waived) |
 | D.3 | README, fresh machine to running in 15 min | README.md | doc | PARTIAL |
 | C.1 | Weights fetched by script, not committed as binaries | scripts/fetch_weights.py | CLI | DONE |
-| D.4 | Reproduction bundle | docs/REPRODUCTION.md | doc + script | NOT BUILT |
+| D.4 | Reproduction bundle | docs/REPRODUCTION.md | doc | DONE - fresh-machine setup, one-shot regen commands, number-by-number map, determinism/cache notes |
 | D.7 | Technical report, max 6 pages | docs/TECHNICAL_REPORT.md | doc + 9 stage images | DONE |
 | D.8 | Raw benchmark data | benchmark/raw/ | data | DONE - photo, video and lidar captures committed |

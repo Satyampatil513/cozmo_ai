@@ -1,98 +1,96 @@
 # Cozmo AI case study
 
-Handheld consumer capture to a dimensioned, stitched, damage-annotated property plan.
-Three input tiers (photo, video, LiDAR), one output contract, calibrated intervals throughout.
+Handheld consumer capture → a dimensioned, stitched property plan. Three input tiers
+(photo, video, LiDAR), one output contract, calibrated intervals throughout.
 
-## Status
+One rule drives every design choice: **models supply structure, geometry computes
+measurements.** A network is only ever asked for depth; every reported dimension is the
+distance between planes fitted to tens of thousands of points.
 
-Early. See `docs/COMPLIANCE_MATRIX.md` for what exists and what does not. Every row marked
-NOT BUILT is genuinely not built; nothing here is stubbed to look finished.
+## Setup
 
-## Setup, fresh machine
+Python 3.14, CPU is enough (GPU only makes it faster).
 
-```
-git clone <repo>
-cd cozmo-ai
-python -m venv .venv && . .venv/bin/activate       # Windows: .venv\Scripts\activate
+```bash
+python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python scripts/fetch_weights.py                     # pre-fetch depth model weights
+python scripts/fetch_weights.py                    # one-time, ~few hundred MB; then fully offline
 ```
 
-## Run one capture
+## Run a capture
 
-Same command and same output contract for every tier; the tier is auto-detected when omitted.
+One command per capture. Same output contract from every tier. Tier is auto-detected from the
+input if `--tier` is omitted.
 
-```
-python run.py benchmark/raw/photo              --tier photo --out out_photo
-python run.py benchmark/raw/video/clip.MOV     --tier video --out out_video
-python run.py benchmark/raw/lidar/scan.r3d     --tier lidar --out out_lidar
-```
-
-Writes `out/result.json` against `schemas/output.schema.json`. Rendered plans are NOT BUILT.
-
-The tiers differ only in their loader. Everything from `pipeline/measure.py` down is shared,
-and it dispatches on whether frames carry poses rather than on the tier name - so a video
-whose odometry failed degrades to the per-frame path instead of pretending it has a
-trajectory.
-
-Benchmarks and reports:
-
-```
-python benchmark/scripts/report.py --run          # every tier, then one table
-python benchmark/scripts/fix_loop_photo.py        # before/after + signal ablation
-python benchmark/scripts/inspect_r3d.py           # what a .r3d actually contains
-python benchmark/scripts/damage_room1.py          # first-pass damage detector on a real room
-python tests/test_smoke.py                        # all three tiers, interface invariants
+```bash
+python run.py benchmark/raw/photo                     --tier photo --out out_photo
+python run.py benchmark/raw/video/IMG_0460.MOV        --tier video --out out_video
+python run.py benchmark/raw/lidar/*.r3d               --tier lidar --out out_lidar
 ```
 
-Depth inference is cached by content hash under `benchmark/cache/` (gitignored). Pass
-`--no-cache` to force the live path.
+Writes `<out>/result.json`, validated against `schemas/output.schema.json`. Photo input is
+one folder per room. `--no-cache` forces live depth inference (no cached outputs).
 
-See `OVERNIGHT_PROGRESS.md` for current measured accuracy, known failure modes and what is
-blocked on missing capture data.
+The tiers differ only in their loader. Everything from `pipeline/measure.py` down is shared
+and branches on whether frames carry poses, never on the tier name — so a video whose
+odometry fails degrades to the per-frame path instead of faking a trajectory.
 
-## Capture
+## Reproduce the numbers
 
-Route 2, stock capture: native iOS Camera for the photo and video tiers, Record3D for the
-LiDAR tier. No custom app to install.
+```bash
+python benchmark/scripts/report.py --run     # all 3 tiers → benchmark/results/benchmark_report.md
+python benchmark/scripts/gates.py            # brief's gates vs laser survey → gates.md
+python benchmark/scripts/fix_loop_photo.py   # fix-loop before/after + ablation → fix_loop_photo.md
+python tests/test_smoke.py                   # all tiers, interface invariants
+```
 
-- `docs/CAPTURE_PROTOCOL.md` - the one page an operator follows literally
-- `docs/DEVICE_MATRIX.md` - which tier runs on which hardware, and what it delivers
-- `docs/capture/` - the operator-facing shot lists we used for our own benchmark
+Full number-by-number map and fresh-machine steps: **`docs/REPRODUCTION.md`**.
 
-**Nothing to print, nothing to place in the room.** Photo and video are scale-ambiguous -
-a room and a scale model of it produce identical pixels - so metres come from a metric depth
-model fused with the floor plane and one stated number, the operator's camera height. We
-deliberately require no fiducial: the benchmark has to be captured the same way Cozmo will
-capture at the walk-in test, or the benchmark predicts nothing.
+## Capture route
 
-LiDAR requires a Pro-class iPhone. On a non-Pro device that tier fails loudly rather than
-falling back to the video path - reporting video-tier accuracy under a LiDAR-tier label
-would be worse than refusing.
+Route 2, stock capture — native iOS Camera for photo/video, Record3D for LiDAR. No app to
+install, **nothing to print or place in the room**. Photo and video are scale-ambiguous, so
+metres come from a metric depth model fused with the floor plane and one stated number, the
+operator's camera height. The benchmark is captured the same way the walk-in test will be, or
+it predicts nothing.
+
+LiDAR needs a Pro-class iPhone; on a non-Pro device that tier fails loudly rather than
+silently falling back to video-tier accuracy under a LiDAR label.
+
+- `docs/CAPTURE_PROTOCOL.md` — the one page an operator follows literally
+- `docs/DEVICE_MATRIX.md` — which tier runs on which hardware, and what it delivers
+- `docs/capture/` — the operator shot lists used for our own benchmark
 
 ## Status
 
-Working: all three tier loaders, multi-view fusion for posed captures, plane geometry,
-ceiling height, wall-pair dimensions, a first-pass opening detector, and a regenerable fix
-loop. NOT BUILT: multi-room stitching, damage detection, rendered plans. Accuracy today is
-+3.8% ceiling on LiDAR, +7.2% on video, and -13% to +12% per room on photo - see
-`docs/COMPLIANCE_MATRIX.md` for the row-by-row state.
+Honest and row-by-row in **`docs/COMPLIANCE_MATRIX.md`**. Every `NOT BUILT` is genuinely not
+built; nothing is stubbed to look finished.
 
-## Design in one paragraph
+**Working:** all three tier loaders, multi-view fusion for posed captures, plane geometry,
+ceiling height, wall-pair dimensions, opening detection, photo-tier property stitching, a
+regenerable fix loop, per-tier interval calibration, an on/off drift ablation, first-pass
+damage detection emitted in the schema output.
+**Not passing:** ceiling and wall gates (depth-model scale bias, identified in the report);
+repeatability — checked at the video tier, the two walkthroughs disagree by 18.8 cm.
+**Out of scope (team-confirmed):** head-to-head vs an incumbent; damage scoring.
+**Not built:** rendered multi-room plans for every tier.
 
-Every tier resolves to the same `Scene`: a list of frames, each with optional depth and
-optional pose, plus an explicit scale source. LiDAR arrives with depth, poses and metres.
-Video and photos arrive with none of those and get geometry from a shared pointmap backbone
-and metres from a metric depth model fused with the floor plane. Everything downstream of
-`pipeline/capture/` is tier-agnostic and never branches on tier; the tiers differ only in how
-wide their intervals end up, and those widths are fitted on our own benchmark residuals rather
-than chosen.
+Accuracy today: ceiling +3.8% LiDAR / +7.2% video / −13% to +12% per room photo.
+
+## Documents
+
+| File | What |
+|---|---|
+| `docs/TECHNICAL_REPORT.md` | architecture, tier design, error budget, fix loop, failure modes |
+| `docs/REPRODUCTION.md` | regenerate every number from raw inputs |
+| `docs/COMPLIANCE_MATRIX.md` | requirement → path → artifact → status |
+| `OVERNIGHT_PROGRESS.md` | measured accuracy, known failure modes, what's blocked on data |
 
 ## Layout
 
 ```
-docs/         protocol, device matrix, compliance matrix, reports
-schemas/      published output contract
-pipeline/     capture -> geometry -> stitching -> damage -> confidence -> output
-benchmark/    raw captures, tape ground truth, harness, results
+docs/        protocol, device matrix, compliance matrix, reports
+schemas/     published output contract
+pipeline/    capture → geometry → stitching → damage → confidence → output
+benchmark/   raw captures, laser ground truth, harness, results
 ```

@@ -35,21 +35,24 @@ every repeatability number is defined against the same rooms and the same tape m
 
 ## Accuracy delivered, by tier
 
-Filled from `benchmark/results/`. Gate column is the brief's threshold, not ours.
+Filled from `benchmark/results/` (`benchmark_report.md`, `gates.md`, `calibration.md`). Every
+figure is measured against the laser survey (photo) or the `.r3d` room's own tape (LiDAR); a
+blank is still unmeasured. Gate column is the brief's threshold, not ours.
 
-| Tier | Wall length | Ceiling height | Opening width | Footprint | Gate |
+| Tier | Wall length | Ceiling height | Opening width | Footprint | Verdict vs gate |
 |---|---|---|---|---|---|
-| Photo | | | | | wall ±8%, footprint ±8%, calibrated intervals |
-| Video | | | | | wall ±3%, calibrated intervals |
-| LiDAR | | | | | openings ≤2 cm on ≥85%, ceiling ≤1.5 cm, repeatability 1 cm / 0.5% |
+| Photo | −30% bias, worst room −38% | +4.8% bias (11–24 cm/room) | not detected on most rooms | +33% area, the one room that closed a polygon | FAIL — wall, ceiling, footprint all outside gate |
+| Video | no ground truth (walkthrough spans rooms) | +7.2% (2.83 m vs 2.64 m tape) | — | — | FAIL ceiling; repeatability FAIL (18.8 cm between two walkthroughs) |
+| LiDAR | wall-pair +1.8% (3.60 m vs 3.54 m) | +3.8% (2.70 m vs 2.6 m tape) | door height +1.9%, 1 false positive | — | wall-pair within ±8%; ceiling FAIL ≤1.5 cm; openings not clean |
 
-## Open questions to close before submission
+Intervals are calibrated per tier (`benchmark/scripts/calibrate.py`): at the photo tier a
+nominal 95% interval empirically contains the truth ~50% of the time — the residual is a
+depth-scale bias a symmetric band cannot chase, not an interval-width problem.
+
+## Open questions to close before the walk-in test
 
 - Exact model and iOS version of the borrowed LiDAR device.
-- Whether Record3D's free tier permits `.r3d` export at the clip lengths we need on that
-  device. Fallback is 3D Scanner App (Laan Labs) → Export → All Data. **Tested in the probe
-  session, not on shoot day.**
-- Whether the photo tier degrades measurably between 8, 6 and the 2-still minimum. We capture
-  a 2-still set specifically to measure this rather than assert it.
-- Behaviour on a non-Pro device when the LiDAR tier is requested — must be a loud failure,
-  and there must be a test asserting that.
+- Whether Record3D's free tier permits `.r3d` export at the clip lengths needed, or whether
+  the fallback (3D Scanner App → Export → All Data) is used. Test in the probe session.
+- Whether the photo tier degrades measurably between 8, 6 and the 2-still minimum.
+- A loud-failure guard + test for the LiDAR tier requested on a non-Pro device.
