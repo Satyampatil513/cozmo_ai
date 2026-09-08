@@ -144,7 +144,8 @@ def main() -> int:
     ap.add_argument("--debug", action="store_true",
                     help="write per-frame diagnostic overlays to <out>/debug/")
     ap.add_argument("--no-drift-correction", action="store_true",
-                    help="ablation: compose poses as-is, no pose graph (not yet implemented)")
+                    help="ablation: video/lidar stitching only. Compose poses as-is, "
+                         "skip the plane-anchored correction between rooms")
     args = ap.parse_args()
 
     t_start = time.time()
@@ -173,7 +174,8 @@ def main() -> int:
                                   cache=not args.no_cache,
                                   debug_dir=os.path.join(args.out, "debug") if args.debug
                                   else None,
-                                  photo_mode=args.photo_mode))
+                                  photo_mode=args.photo_mode,
+                                  drift_correction=not args.no_drift_correction))
 
     result = {
         "schema_version": SCHEMA_VERSION,
@@ -190,9 +192,14 @@ def main() -> int:
             "loader_meta": {k: v for k, v in (meta or {}).items() if k != "odometry"},
         },
         "property": {
-            "rooms": [r["room_id"] for r in rooms],
-            "connections": [],          # NOT BUILT: needs cross-room registration
-            "footprint_area": None,     # NOT BUILT: needs the stitch
+            # A stitched capture reports several sub-rooms under one RoomCapture, so the
+            # property's own room list has to expand those rather than listing the capture
+            # once - "rooms": ["video_room_0", "video_room_1"], not ["video_room"].
+            "rooms": [sr["room_id"] for r in rooms
+                     for sr in (r.get("sub_rooms") or [r])],
+            "connections": [c for r in rooms for c in (r.get("connections") or [])],
+            "footprint_area": (next((r["footprint_area_m2"] for r in rooms
+                                    if r.get("footprint_area_m2") is not None), None)),
         },
         "rooms": rooms,
         "timing_seconds": round(time.time() - t_start, 1),
@@ -205,6 +212,24 @@ def main() -> int:
     print(f"\ntier={tier}  commit={result['capture']['pipeline_commit']}  "
           f"{result['timing_seconds']}s")
     for r in rooms:
+        if r.get("mode") == "stitched":
+            dc = r.get("drift_correction", {})
+            print(f"  {r['room_id']:<24} mode=stitched   "
+                  f"{r.get('n_rooms_detected', '?')} room(s) detected, "
+                  f"{len(r.get('connections', []))} connection(s), "
+                  f"footprint={r.get('footprint_area_m2', '-')} m2")
+            print(f"      drift correction: {dc.get('method', '-')}")
+            print(f"      shared-wall gap: {dc.get('shared_wall_gap_before_cm', '-')} cm "
+                  f"-> {dc.get('shared_wall_gap_after_cm', '-')} cm   "
+                  f"footprint: {dc.get('footprint_before_m2', '-')} "
+                  f"-> {dc.get('footprint_after_m2', '-')} m2")
+            for sr in r.get("sub_rooms", []):
+                sch = sr.get("ceiling_height")
+                print(f"      {sr['room_id']:<22} "
+                      f"ceiling={f'{sch:.3f}m' if sch else 'abstained':<12} "
+                      f"walls={sr.get('n_walls','-')} "
+                      f"openings={len(sr.get('openings', []))}")
+            continue
         ch = r.get("ceiling_height")
         print(f"  {r['room_id']:<24} mode={r.get('mode','-'):<10} "
               f"ceiling={f'{ch:.3f}m' if ch else 'abstained':<12} "

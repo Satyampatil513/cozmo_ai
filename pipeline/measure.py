@@ -141,7 +141,7 @@ def _write_debug(frame, pts, nrm, pix, m: dict, room: RoomCapture, debug_dir: st
 
 def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
                  work_px: int = 1024, debug_dir: Optional[str] = None,
-                 photo_mode: str = "per_frame") -> dict:
+                 photo_mode: str = "per_frame", drift_correction: bool = True) -> dict:
     """Measure one RoomCapture. Runs depth first where the tier does not supply it.
 
     `photo_mode` selects between the two photo-tier approaches, both runnable on the same raw
@@ -229,7 +229,57 @@ def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
     posed = [f for f in frames if f.T_wc is not None and f.depth is not None]
     result["posed_frames"] = len(posed)
 
-    if len(posed) >= 3:
+    stitched = False
+    if len(posed) >= 6 and room.tier in ("video", "lidar"):
+        # A continuous video/lidar capture that walked through several rooms is not
+        # detectable from the tier alone - our own captures are each one room, and there is
+        # no flag for "this one has more". Segmentation answers it from the trajectory
+        # itself: a single-room walk produces one dense cluster and one segment, so this
+        # check is safe to run unconditionally rather than needing to be opted into. See
+        # `pipeline/geometry/segment.py` for why the trajectory, not the point cloud, is
+        # what gets clustered, and `benchmark/results/multiview_findings.md`-style honesty
+        # note: neither our video nor LiDAR raw capture is multi-room today, so this path is
+        # validated on synthetic ground truth (tests/test_stitching.py) until a re-shoot.
+        from pipeline.geometry.segment import segment_rooms
+        # A coarse, heavily-strided fuse purely to get a gravity direction for projecting the
+        # trajectory onto the floor plane - discarded immediately after. It never feeds into
+        # any reported measurement: if this capture turns out to be one room, `_measure_cloud`
+        # below computes its own gravity from the properly-strided fused cloud, exactly as it
+        # always has; if it is several rooms, `stitch_posed_capture` re-estimates gravity
+        # itself, at the finer stride each room's own measurement uses.
+        quick = fuse_frames(posed, stride=8)
+        quick_prior = None
+        if room.tier == "lidar":
+            from pipeline.capture.lidar import ARKIT_WORLD_UP
+            quick_prior = ARKIT_WORLD_UP
+        if len(quick.points):
+            from pipeline.geometry.planes import estimate_gravity, extract_planes, \
+                merge_coplanar
+            quick_planes = merge_coplanar(
+                extract_planes(quick.points, quick.normals,
+                               threshold=PLANE_THRESHOLD.get(room.tier, 0.03)), quick.points)
+            quick_gravity = estimate_gravity(quick_planes, prior=quick_prior)
+            segments = segment_rooms(posed, quick_gravity)
+            if len(segments) > 1:
+                from pipeline.stitching.stitch import stitch_posed_capture
+                stitch_result = stitch_posed_capture(posed, room, segments, room.tier,
+                                                     drift_correction=drift_correction)
+                if stitch_result is not None:
+                    result["mode"] = "stitched"
+                    result.update(stitch_result)
+                    stitched = True
+                else:
+                    # Segmentation proposed a split; nothing confirmed it as real (no shared
+                    # wall between any pair - see find_adjacent_rooms). Falling through to the
+                    # single-room path below measures every posed frame as one room, which is
+                    # what this capture was until proven otherwise.
+                    result["segmentation_rejected"] = (
+                        f"{len(segments)} segment(s) proposed from the trajectory, but no "
+                        f"pair could be confirmed as separate rooms; measuring as one room")
+
+    if stitched:
+        pass                              # stitch_posed_capture already measured everything
+    elif len(posed) >= 3:
         result["mode"] = "fused"
         fc = fuse_frames(posed, stride=2)
         result["fused"] = {"n_raw": fc.n_raw, "n_points": int(len(fc.points)),

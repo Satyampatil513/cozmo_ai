@@ -183,13 +183,39 @@ def _relative_pose(rgb_a: np.ndarray, depth_a: np.ndarray, rgb_b: np.ndarray,
     return np.linalg.inv(T_b_from_a), int(len(inliers))
 
 
+MAX_RELOCALIZE_GAP = 15          # frames past a broken link still worth retrying (see below)
+
+
 def odometry(keyframes: list[tuple[int, np.ndarray]], depths: list[np.ndarray],
-             K: np.ndarray) -> tuple[list[Optional[np.ndarray]], list[dict]]:
+             K: np.ndarray, max_relocalize_gap: int = MAX_RELOCALIZE_GAP
+             ) -> tuple[list[Optional[np.ndarray]], list[dict]]:
     """Chain relative poses into a trajectory. First keyframe defines the world frame.
 
-    A failed link leaves every later frame unposed rather than guessing: an identity pose
-    inserted at a break would silently stack two parts of the room on top of each other, which
-    looks like a reconstruction and is not one. Breaks are reported so the caller can decide.
+    A failed link does not close the trajectory for good. It used to: the previous version of
+    this function checked `poses[i-1] is None` and gave up on every frame from there on,
+    which is why the real clip posed only 15 of 30 keyframes - one broken link at frame 15 and
+    every frame after it was marked unposed regardless of what the camera saw next, even
+    though nothing about frame 16 onward was actually wrong.
+
+    So a break now RETRIES against the last successfully posed frame - not just its immediate
+    predecessor - for up to `max_relocalize_gap` further keyframes. A camera hiccup (motion
+    blur on one frame, a hand crossing the lens) usually clears within a frame or two, and the
+    scene a moment later still overlaps heavily with the last good view, which is exactly what
+    a relocalization attempt tests for directly rather than assuming.
+
+    THE TRUST BAR DOES NOT MOVE. A relink is accepted through the exact same
+    `_relative_pose` call and the same `MIN_MATCH_INLIERS` floor as an ordinary link - this
+    recovers frames a stricter policy discarded, it does not admit a weaker pose to do it.
+    Inlier counts for a multi-frame gap are typically lower than a normal one-frame step
+    (the camera moved further while unposed), so relinking naturally gets harder the longer a
+    break lasts rather than needing a separate rule to say so.
+
+    `max_relocalize_gap` bounds how far back in time a relink may reach, for two reasons: an
+    unbounded search lets a repetitive surface (the same tile pattern, two doorways that look
+    alike) produce a confident but spurious match to a view from much earlier in the walk, and
+    it bounds the number of `_relative_pose` calls attempted per break. Once exceeded, frames
+    from the anchor onward stay unposed exactly as before this change - relocalization gives a
+    stuck trajectory more chances to recover, it does not guarantee one always exists.
     """
     n = len(keyframes)
     poses: list[Optional[np.ndarray]] = [None] * n
@@ -198,17 +224,31 @@ def odometry(keyframes: list[tuple[int, np.ndarray]], depths: list[np.ndarray],
         return poses, diag
 
     poses[0] = np.eye(4)
+    anchor = 0
     for i in range(1, n):
-        if poses[i - 1] is None:
-            diag.append({"link": i, "inliers": 0, "ok": False, "reason": "previous unposed"})
+        gap = i - anchor
+        if gap > max_relocalize_gap:
+            # This anchor is exhausted - do not spend another `_relative_pose` call on it.
+            # Nothing here can invent a new anchor without a pose to hang it from, so the
+            # sequence stays unposed from here on, exactly as before this change, but only
+            # after `max_relocalize_gap` real attempts rather than zero.
+            diag.append({"link": i, "anchor": anchor, "inliers": 0, "ok": False,
+                        "reason": f"exceeded the {max_relocalize_gap}-frame relocalization "
+                                  f"window against frame {anchor}"})
             continue
-        T_rel, inl = _relative_pose(keyframes[i - 1][1], depths[i - 1], keyframes[i][1], K)
+
+        T_rel, inl = _relative_pose(keyframes[anchor][1], depths[anchor], keyframes[i][1], K)
         if T_rel is None:
-            diag.append({"link": i, "inliers": inl, "ok": False, "reason": "weak match"})
+            reason = "weak match" if gap == 1 else f"relocalize vs frame {anchor} failed"
+            diag.append({"link": i, "anchor": anchor, "inliers": inl, "ok": False,
+                        "reason": reason})
             continue
-        poses[i] = poses[i - 1] @ T_rel
-        diag.append({"link": i, "inliers": inl, "ok": True,
+
+        poses[i] = poses[anchor] @ T_rel
+        diag.append({"link": i, "anchor": anchor, "inliers": inl, "ok": True,
+                     "gap": gap, "relocalized": gap > 1,
                      "step_m": round(float(np.linalg.norm(T_rel[:3, 3])), 4)})
+        anchor = i
     return poses, diag
 
 
