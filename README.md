@@ -41,6 +41,7 @@ Benchmarks and reports:
 python benchmark/scripts/report.py --run          # every tier, then one table
 python benchmark/scripts/fix_loop_photo.py        # before/after + signal ablation
 python benchmark/scripts/inspect_r3d.py           # what a .r3d actually contains
+python benchmark/scripts/damage_room1.py          # first-pass damage detector on a real room
 python tests/test_smoke.py                        # all three tiers, interface invariants
 ```
 

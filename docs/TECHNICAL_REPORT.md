@@ -12,33 +12,47 @@ planes fitted to tens of thousands of points — auditable line by line, not a b
 
 ## 1. Architecture
 
-```
-              photo folders        video clip           .r3d / stray zip
-                    |                   |                       |
-   capture/    load + EXIF K     sample + odometry        unzip + poses
-                    |                   |                       |
-              metric depth        metric depth              LiDAR depth
-                    \                   |                       /
-                     `----------- lift to points + normals ----'
-                                        |
-                              [poses?] ---- yes ----> fuse to one world cloud
-                                        |
-   geometry/                   RANSAC planes -> merge coplanar
-                                        |
-                                gravity (prior-constrained)
-                                        |
-                    joint floor/ceiling selection (or abstain)
-                                        |
-                        conservative Manhattan regularisation
-                                        |
-            +----------------------------+----------------------------+
-            |                            |                             |
-      ceiling height             wall-pair spans                openings as holes
-                                        |
-   video/lidar only:      doorway-crossing segmentation -> per-room walls
-                              -> adjacency + drift correction -> blueprint
-                                        |
-   output/                     intervals -> JSON + PNG/SVG plan
+```mermaid
+flowchart TD
+    subgraph capture["capture/ (tier-specific ingest)"]
+        P0[photo folders] --> P1[load + EXIF K]
+        V0[video clip] --> V1[sample + odometry]
+        L0[".r3d / stray zip"] --> L1[unzip + poses]
+        P1 --> P2[metric depth]
+        V1 --> V2[metric depth]
+        L1 --> L2[LiDAR depth]
+    end
+
+    P2 --> LIFT[lift to points + normals]
+    V2 --> LIFT
+    L2 --> LIFT
+
+    LIFT --> POSES{poses?}
+    POSES -->|yes| FUSE[fuse to one world cloud]
+    POSES -->|no| GEO
+    FUSE --> GEO
+
+    subgraph geometry["geometry/ (tier-agnostic)"]
+        GEO["RANSAC planes → merge coplanar"] --> GRAV[gravity: prior-constrained]
+        GRAV --> SEL[joint floor/ceiling selection, or abstain]
+        SEL --> MAN[conservative Manhattan regularisation]
+    end
+
+    MAN --> CH[ceiling height]
+    MAN --> WP[wall-pair spans]
+    MAN --> OP[openings as holes]
+
+    MAN --> SEG["video/lidar only: doorway-crossing segmentation → per-room walls"]
+    SEG --> ADJ["adjacency + drift correction → blueprint"]
+
+    CH --> OUT
+    WP --> OUT
+    OP --> OUT
+    ADJ --> OUT
+
+    subgraph output["output/"]
+        OUT["intervals → JSON + PNG/SVG plan"]
+    end
 ```
 
 Everything below `capture/` is **tier-agnostic** — it branches on whether a frame carries a
@@ -237,7 +251,65 @@ before it reaches a confident 9-room stitch.
 
 ---
 
-## 8. Status against the brief
+## 8. Damage detection: first pass
+
+`pipeline/damage/` was three `NotImplementedError` stubs. It is now a working first pass —
+detection, concealed-damage rules, scope line items — unit-tested on synthetic damage
+(`tests/test_damage.py`, 8 checks). It is **not wired into `run.py`**: the
+`detect(frame, surfaces)` entry point still raises, because no staged-damage capture exists to
+validate a `measure.py` hook against (`benchmark/ground_truth/damage.csv` is placeholder rows).
+
+**Method.** Detection runs in image space — a stain or a spalled patch is a colour anomaly,
+not something depth shows — but every reported extent is metric. Each region is rasterised
+onto its wall plane in the wall's own `(u, v)` frame, the same `_wall_frame` axes `openings.py`
+uses to turn a hole into a width and a height. A cell is anomalous when its sampled colour
+deviates from *that wall's own median colour* by more than `4·MAD` (floored at 8/255), so a
+beige wall and a white wall are each judged on their own distribution rather than an absolute
+RGB threshold. Class is aspect-ratio only: long/short ≥ 4 → `crack`, else `water_stain`. The
+concealed-damage rules then fire at most one match per region and name it.
+
+**Run against Room 1.** Room 1 carries no *staged* damage — but it turns out to have
+extensive *real* damp damage: a band of blown, spalling plaster along the skirting on both
+sides of the bathroom door, plus a water stain on the ceiling around the fan. Six photos,
+unfitted thresholds, no ground truth:
+
+![First-pass damage detector on Room 1: red = classified crack, blue = classified water_stain](report_assets/14_damage_room1.png)
+
+| | |
+|---|---|
+| Regions flagged | 20 across 6 frames (14 `water_stain`, 6 `crack`) |
+| Clean frames | 1 of 6 (IMG_0445 — no false positives) |
+| Concealed-damage rules fired | 2, both `CONCEAL-WATER-02` (IMG_0444) |
+
+What it got right:
+
+- **IMG_0446** — two regions land squarely on the real spalled-plaster band at the base of
+  the wall, both sides of the doorway. Right location, right "damage low on a wall" signal.
+- That low-wall geometry is exactly what triggers `CONCEAL-WATER-02` ("substrate and skirting
+  saturation behind the finish") — the correct rule for what is physically there.
+
+What it got wrong:
+
+- **Class is unreliable.** The same damp/spalled band is `crack` in IMG_0446 and IMG_0439,
+  `water_stain` in IMG_0444 — the aspect ratio of an irregular real patch is noisy. In
+  IMG_0439 the misclassification cost a flag directly: the band at floor level was labelled
+  `crack`, so `CONCEAL-WATER-02` — a `water_stain` rule — never got to fire on it.
+- **High false-positive load.** By eye, most of the 20 regions are the poster collage, the
+  framed mirror, the guitar, the curtain edge, and the patterned bedsheet (IMG_0440's two
+  "cracks" are both on the duvet) — any hard colour edge on a plane RANSAC accepted as a wall.
+- **No cross-frame association** — the one physical damp band is counted 2–4 times.
+- **Height-above-floor is unreliable on the per-frame path** — values run −0.02 m to 2.65 m;
+  the 2.65 m "wall" stain is really the ceiling stain around the fan, assigned to a wall
+  plane. The `max_height_m = 0.5` rule gate cannot defend itself on a floor estimate that loose.
+
+**Before this pass is trustworthy** it needs: staged damage with tape-measure ground truth to
+calibrate the colour threshold and set a real class boundary; a texture/edge filter to reject
+posters, mirrors, and fabric; cross-frame region association; and correct surface assignment,
+so a ceiling stain reaches `CONCEAL-WATER-01` instead of a wall rule.
+
+---
+
+## 9. Status against the brief
 
 | | Status |
 |---|---|
@@ -248,6 +320,6 @@ before it reaches a confident 9-room stitch.
 | Ceiling / wall gates | Fail — root cause identified, not a mystery |
 | Repeatability gate | Two real video captures of one property exist; not yet cross-scored |
 | Head-to-head vs incumbent | Not built |
-| Damage detection | Not built |
+| Damage detection | First pass built, synthetic-tested; run once against real Room 1 (§8). Not wired into `run.py` — no staged-damage capture to validate the hook |
 
 Full row-by-row detail: `docs/COMPLIANCE_MATRIX.md`. Reproduction commands: `README.md`.
