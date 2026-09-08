@@ -30,7 +30,8 @@ from pipeline.geometry.fuse import fuse_frames
 from pipeline.geometry.lift import lift
 from pipeline.geometry.openings import detect_openings
 from pipeline.geometry.planes import CAMERA_UP, fit_floor_ceiling
-from pipeline.geometry.walls import ceiling_height, extract_walls, wall_pair_dimensions
+from pipeline.geometry.walls import (ceiling_height, corners_with_status, extract_walls,
+                                     wall_pair_dimensions)
 from pipeline.types import RoomCapture, Scale
 
 # Plane inlier band by tier, in metres. LiDAR range noise is ~1 cm; lifted monocular depth is
@@ -69,6 +70,13 @@ def _measure_cloud(points: np.ndarray, normals: np.ndarray, tier: str,
             out["ceiling_spread_m"] = float(spread)
 
     out["wall_pairs"] = wall_pair_dimensions(walls, g, points)[:6]
+
+    # Corners, kept and rejected. Reported as counts here because the comparison between the
+    # photo approaches turns on whether multi-view recovers corners a single view cannot see.
+    cands = corners_with_status(walls, floor, points, g)
+    out["corners_accepted"] = sum(1 for c in cands if c.accepted)
+    out["corners_rejected"] = sum(1 for c in cands if not c.accepted)
+    out["corners"] = [c.to_json() for c in cands if c.accepted][:12]
 
     if want_polygon and floor is not None:
         geo = extract_walls(points, floor, ceiling, walls=walls, gravity=g)
@@ -132,8 +140,26 @@ def _write_debug(frame, pts, nrm, pix, m: dict, room: RoomCapture, debug_dir: st
 
 
 def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
-                 work_px: int = 1024, debug_dir: Optional[str] = None) -> dict:
-    """Measure one RoomCapture. Runs depth first where the tier does not supply it."""
+                 work_px: int = 1024, debug_dir: Optional[str] = None,
+                 photo_mode: str = "per_frame") -> dict:
+    """Measure one RoomCapture. Runs depth first where the tier does not supply it.
+
+    `photo_mode` selects between the two photo-tier approaches, both runnable on the same raw
+    photos and neither replacing the other:
+
+      per_frame   each photo measured in its own camera frame, results aggregated by median.
+                  The shipped default. Cannot produce a room polygon: unposed frames share no
+                  coordinate system.
+
+      multiview   photos are registered into one frame first (`capture/multiview.py`), which
+                  populates `T_wc` and hands them to the same fused path LiDAR and video
+                  already use. If registration cannot be verified, this falls back to
+                  per_frame and says so rather than measuring a reconstruction it does not
+                  trust.
+
+    The mode only ever decides whether poses get *attempted*. Everything downstream still
+    branches on whether a frame actually carries one.
+    """
     t0 = time.time()
     frames = room.frames
     result: dict = {"room_id": room.room_id, "tier": room.tier, "n_frames": len(frames)}
@@ -155,6 +181,51 @@ def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
             else:
                 f.depth = depth_backend.infer(f.image, f.K).depth
 
+    # Photo multiview: recover poses. Registration runs after depth because it aligns
+    # 3D-to-3D and needs both frames' depth maps.
+    result["approach"] = {"photo": f"photo_{photo_mode}"}.get(room.tier, room.tier)
+    # Gated on the REQUESTED MODE and on the absence of poses, never on the tier name. A video
+    # whose odometry failed arrives here unposed exactly like a photo folder does, and if the
+    # caller asked for multiview it should get the same treatment - the tier label is not what
+    # makes registration applicable, the missing poses are.
+    if photo_mode.startswith("multiview") and all(f.T_wc is None for f in frames):
+        from pipeline.capture.multiview import apply_poses
+        usable = [f for f in frames if f.depth is not None]
+        t_reg = time.time()
+
+        if photo_mode == "multiview_unvalidated":
+            # The original path, unchanged: maximum-support spanning tree, every edge trusted.
+            # Kept as a real runnable baseline rather than a remembered number, so the fix
+            # loop can show per-frame -> naive multiview -> gated multiview as three runs.
+            from pipeline.capture.register import match_all, register
+            reg = register(usable, match_all(usable))
+            result["registration"] = {
+                "validated": False, "n_frames": len(usable),
+                "n_registered": reg.n_registered, "reference": reg.reference,
+                "residual_median_cm": (None if not np.isfinite(reg.residual_median_m)
+                                       else round(reg.residual_median_m * 100, 2)),
+                "residual_p90_cm": (None if not np.isfinite(reg.residual_p90_m)
+                                    else round(reg.residual_p90_m * 100, 2)),
+                "per_pair": reg.per_pair,
+                "seconds": round(time.time() - t_reg, 1),
+            }
+            apply_poses(usable, reg.poses)
+        else:
+            from pipeline.capture.multiview import register_multiview
+            reg = register_multiview(usable)
+            result["registration"] = {"validated": True, **reg.to_json()}
+            result["registration_report"] = reg.report_lines()
+            if reg.trustworthy:
+                apply_poses(usable, reg.poses)
+            else:
+                # Refusing the reconstruction is a result, not an error. Measuring a cloud
+                # built on poses that contradict each other yields a confident number from
+                # geometry that never existed - the failure this gate exists to catch.
+                result["multiview_rejected"] = True
+                result["multiview_reject_reason"] = (
+                    f"registration not trustworthy ({reg.summary}); "
+                    f"falling back to per-frame measurement")
+
     posed = [f for f in frames if f.T_wc is not None and f.depth is not None]
     result["posed_frames"] = len(posed)
 
@@ -165,12 +236,20 @@ def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
                            "n_frames": fc.n_frames}
         # A fused cloud lives in a world frame with the camera somewhere inside it, so the
         # camera-at-origin prior does not apply and gravity comes from the reconstruction.
-        prior = None if room.tier == "lidar" else None
-        from pipeline.capture.lidar import ARKIT_WORLD_UP
+        prior, at_origin = None, False
         if room.tier == "lidar":
+            from pipeline.capture.lidar import ARKIT_WORLD_UP
             prior = ARKIT_WORLD_UP
+        elif room.tier == "photo":
+            # Photo multiview has no external gravity reference, but its world frame IS the
+            # reference camera's frame - poses[ref] is identity by construction. So the
+            # hold-the-phone-level prior that guards the per-frame path applies here
+            # unchanged, and the reference camera really is at the origin. Without this the
+            # gravity vote runs unconstrained on a fused photo cloud, which is the exact
+            # failure that made it classify walls as floors in the first place.
+            prior, at_origin = CAMERA_UP, True
         result.update(_measure_cloud(fc.points, fc.normals, room.tier, prior,
-                                     camera_at_origin=False, want_polygon=True))
+                                     camera_at_origin=at_origin, want_polygon=True))
         if debug_dir and len(fc.points):
             from pipeline.output.debug import topdown_panel
             import os as _os

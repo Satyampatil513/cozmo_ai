@@ -134,6 +134,13 @@ def main() -> int:
     ap.add_argument("--lidar-stride", type=int, default=30)
     ap.add_argument("--video-every-n", type=int, default=30)
     ap.add_argument("--max-frames", type=int, default=None)
+    ap.add_argument("--photo-mode",
+                    choices=["per_frame", "multiview_unvalidated", "multiview"],
+                    default="per_frame",
+                    help="photo tier only. per_frame: measure each photo alone (default). "
+                         "multiview_unvalidated: register with a spanning tree, trust every "
+                         "edge (the naive baseline, kept for the fix loop). "
+                         "multiview: reject edges whose cycles do not close, then fuse")
     ap.add_argument("--debug", action="store_true",
                     help="write per-frame diagnostic overlays to <out>/debug/")
     ap.add_argument("--no-drift-correction", action="store_true",
@@ -158,7 +165,8 @@ def main() -> int:
         rooms.append(measure_room(room, depth_backend=depth_backend,
                                   cache=not args.no_cache,
                                   debug_dir=os.path.join(args.out, "debug") if args.debug
-                                  else None))
+                                  else None,
+                                  photo_mode=args.photo_mode))
 
     result = {
         "schema_version": SCHEMA_VERSION,
@@ -171,6 +179,7 @@ def main() -> int:
             "scale_source": scene.rooms[0].scale.source if scene.rooms else "none",
             "depth_backend": args.backend if depth_backend else None,
             "drift_correction": not args.no_drift_correction,
+            "approach": (f"photo_{args.photo_mode}" if tier == "photo" else tier),
             "loader_meta": {k: v for k, v in (meta or {}).items() if k != "odometry"},
         },
         "property": {
@@ -193,6 +202,15 @@ def main() -> int:
         print(f"  {r['room_id']:<24} mode={r.get('mode','-'):<10} "
               f"ceiling={f'{ch:.3f}m' if ch else 'abstained':<12} "
               f"walls={r.get('n_walls','-')} openings={len(r.get('openings', []))}")
+        # After the room's own line, never before it: printed first, a block of registration
+        # numbers reads as belonging to the room above it.
+        reg = r.get("registration")
+        if reg:
+            for line in r.get("registration_report", [
+                    f"{reg['n_registered']}/{reg['n_frames']} registered (unvalidated)"]):
+                print(f"      {line}")
+        if r.get("multiview_rejected"):
+            print(f"      -> {r['multiview_reject_reason']}")
     print(f"wrote {out_path}")
     if args.debug:
         print(f"wrote diagnostic overlays to {os.path.join(args.out, 'debug')}/")

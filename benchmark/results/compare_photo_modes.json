@@ -1,0 +1,1937 @@
+{
+  "ground_truth_ceiling_m": 2.64,
+  "modes": [
+    "per_frame",
+    "multiview_unvalidated",
+    "multiview"
+  ],
+  "rooms": [
+    {
+      "room": "Hallway",
+      "n_frames": 6,
+      "modes": {
+        "per_frame": {
+          "approach": "photo_per_frame",
+          "mode": "per_frame",
+          "ceiling_m": 2.8537,
+          "ceiling_err_pct": 8.1,
+          "spread_m": 0.1244,
+          "spread_kind": "between-frame SD",
+          "wall_spans_m": [
+            2.688
+          ],
+          "n_walls": 4,
+          "corners_accepted": 2,
+          "corners_rejected": 4,
+          "polygon": false,
+          "polygon_reason": "unposed frames share no coordinate system; a polygon would be fabricated",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": null,
+          "n_frames": 6,
+          "posed_frames": 0,
+          "residual_max_cm": null,
+          "residual_median_cm": null,
+          "rejected_pairwise": null,
+          "rejected_cycle": null,
+          "trustworthy": null,
+          "fell_back": false,
+          "seconds": 19.9,
+          "wall_seconds": 19.9
+        },
+        "multiview_unvalidated": {
+          "approach": "photo_multiview_unvalidated",
+          "mode": "per_frame",
+          "ceiling_m": 2.8537,
+          "ceiling_err_pct": 8.1,
+          "spread_m": 0.1244,
+          "spread_kind": "between-frame SD",
+          "wall_spans_m": [
+            2.688
+          ],
+          "n_walls": 4,
+          "corners_accepted": 2,
+          "corners_rejected": 4,
+          "polygon": false,
+          "polygon_reason": "unposed frames share no coordinate system; a polygon would be fabricated",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": 2,
+          "n_frames": 6,
+          "posed_frames": 2,
+          "residual_max_cm": null,
+          "residual_median_cm": 4.53,
+          "rejected_pairwise": null,
+          "rejected_cycle": null,
+          "trustworthy": null,
+          "fell_back": false,
+          "seconds": 20.6,
+          "wall_seconds": 20.6
+        },
+        "multiview": {
+          "approach": "photo_multiview",
+          "mode": "per_frame",
+          "ceiling_m": 2.8537,
+          "ceiling_err_pct": 8.1,
+          "spread_m": 0.1244,
+          "spread_kind": "between-frame SD",
+          "wall_spans_m": [
+            2.688
+          ],
+          "n_walls": 4,
+          "corners_accepted": 2,
+          "corners_rejected": 4,
+          "polygon": false,
+          "polygon_reason": "unposed frames share no coordinate system; a polygon would be fabricated",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": 2,
+          "n_frames": 6,
+          "posed_frames": 0,
+          "residual_max_cm": 3.24,
+          "residual_median_cm": 3.24,
+          "rejected_pairwise": 0,
+          "rejected_cycle": 0,
+          "trustworthy": false,
+          "fell_back": true,
+          "seconds": 20.2,
+          "wall_seconds": 20.2
+        }
+      },
+      "registration_report": [
+        "Edges (with a pairwise fit): 2",
+        "Rejected by pairwise residual: 0",
+        "Rejected by cycle consistency: 0  (triangles: 0, fundamental cycles: 0)",
+        "Triangles tested: 0  (failing at first pass: 0)",
+        "Largest cycle error: n/a",
+        "Edges in no triangle (uncheckable): 2",
+        "Connected component: 2/6 frames",
+        "World residual, all edges: median 3.2 cm, max 3.2 cm",
+        "World residual, NON-TREE edges only (0): none - nothing independently checked",
+        "Frames cycle-verified: none   placed but unverified: [0, 3]",
+        "Camera height deviation: n/a",
+        "Verdict: REJECTED"
+      ],
+      "registration": {
+        "validated": true,
+        "n_frames": 6,
+        "n_registered": 2,
+        "reference": 0,
+        "trustworthy": false,
+        "candidate_edges": 2,
+        "rejected_pairwise": 0,
+        "rejected_cycle": 0,
+        "cycle": {
+          "triangles_total": 0,
+          "triangles_failing_initial": 0,
+          "rounds": 0,
+          "removed": [],
+          "edges_in_no_triangle": 2,
+          "fundamental_cycles_cut": []
+        },
+        "components": [
+          [
+            0,
+            3
+          ],
+          [
+            2,
+            5
+          ]
+        ],
+        "unregistered": [
+          {
+            "frame": 1,
+            "reason": "no usable edge to any other frame"
+          },
+          {
+            "frame": 2,
+            "reason": "in a separate component [2, 5], not connected to the main reconstruction after cycle gating"
+          },
+          {
+            "frame": 4,
+            "reason": "no usable edge to any other frame"
+          },
+          {
+            "frame": 5,
+            "reason": "in a separate component [2, 5], not connected to the main reconstruction after cycle gating"
+          }
+        ],
+        "residual_median_cm": 3.24,
+        "residual_p90_cm": 3.24,
+        "residual_max_cm": 3.24,
+        "residual_max_nontree_cm": null,
+        "n_nontree_edges": 0,
+        "verified_frames": [],
+        "unverified_frames": [
+          0,
+          3
+        ],
+        "camera_height_dev_m": null,
+        "dropped_implausible": [],
+        "edges": [
+          {
+            "edge": [
+              0,
+              1
+            ],
+            "status": "no_overlap",
+            "reason": "only 14 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              2
+            ],
+            "status": "no_overlap",
+            "reason": "only 13 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              3
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 10,
+            "pair_scale": 1.0336,
+            "pair_residual_cm": 3.24,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": 3.24,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              0,
+              4
+            ],
+            "status": "no_overlap",
+            "reason": "only 25 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 16 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              2
+            ],
+            "status": "no_overlap",
+            "reason": "only 31 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              3
+            ],
+            "status": "no_overlap",
+            "reason": "only 30 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              4
+            ],
+            "status": "no_overlap",
+            "reason": "only 30 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 29 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              2,
+              3
+            ],
+            "status": "no_overlap",
+            "reason": "only 17 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              2,
+              4
+            ],
+            "status": "no_overlap",
+            "reason": "only 8 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              2,
+              5
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 25,
+            "pair_scale": 0.9233,
+            "pair_residual_cm": 4.53,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              3,
+              4
+            ],
+            "status": "no_overlap",
+            "reason": "only 16 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              3,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 15 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              4,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 20 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          }
+        ],
+        "scales": [
+          1.0,
+          1.0,
+          1.0,
+          1.0336,
+          1.0,
+          1.0
+        ],
+        "gates": {
+          "cycle_m": 0.3,
+          "pair_residual_m": 0.12,
+          "world_residual_m": 0.25,
+          "camera_height_dev_m": 0.9
+        },
+        "seconds": 2.0
+      }
+    },
+    {
+      "room": "Kitchen",
+      "n_frames": 4,
+      "modes": {
+        "per_frame": {
+          "approach": "photo_per_frame",
+          "mode": "per_frame",
+          "ceiling_m": 2.9554,
+          "ceiling_err_pct": 11.95,
+          "spread_m": 0.1288,
+          "spread_kind": "between-frame SD",
+          "wall_spans_m": [
+            1.498
+          ],
+          "n_walls": 7,
+          "corners_accepted": 5,
+          "corners_rejected": 21,
+          "polygon": false,
+          "polygon_reason": "unposed frames share no coordinate system; a polygon would be fabricated",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": null,
+          "n_frames": 4,
+          "posed_frames": 0,
+          "residual_max_cm": null,
+          "residual_median_cm": null,
+          "rejected_pairwise": null,
+          "rejected_cycle": null,
+          "trustworthy": null,
+          "fell_back": false,
+          "seconds": 16.7,
+          "wall_seconds": 16.7
+        },
+        "multiview_unvalidated": {
+          "approach": "photo_multiview_unvalidated",
+          "mode": "fused",
+          "ceiling_m": 2.9172,
+          "ceiling_err_pct": 10.5,
+          "spread_m": 0.0549,
+          "spread_kind": "plane thickness",
+          "wall_spans_m": [
+            3.333,
+            2.025,
+            3.22,
+            2.619
+          ],
+          "n_walls": 8,
+          "corners_accepted": 9,
+          "corners_rejected": 19,
+          "polygon": false,
+          "polygon_reason": "walls did not close into a polygon",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": 3,
+          "n_frames": 4,
+          "posed_frames": 3,
+          "residual_max_cm": null,
+          "residual_median_cm": 1.93,
+          "rejected_pairwise": null,
+          "rejected_cycle": null,
+          "trustworthy": null,
+          "fell_back": false,
+          "seconds": 5.1,
+          "wall_seconds": 5.1
+        },
+        "multiview": {
+          "approach": "photo_multiview",
+          "mode": "per_frame",
+          "ceiling_m": 2.9554,
+          "ceiling_err_pct": 11.95,
+          "spread_m": 0.1288,
+          "spread_kind": "between-frame SD",
+          "wall_spans_m": [
+            1.498
+          ],
+          "n_walls": 7,
+          "corners_accepted": 5,
+          "corners_rejected": 21,
+          "polygon": false,
+          "polygon_reason": "unposed frames share no coordinate system; a polygon would be fabricated",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": 3,
+          "n_frames": 4,
+          "posed_frames": 0,
+          "residual_max_cm": 1.97,
+          "residual_median_cm": 1.95,
+          "rejected_pairwise": 0,
+          "rejected_cycle": 0,
+          "trustworthy": false,
+          "fell_back": true,
+          "seconds": 20.7,
+          "wall_seconds": 20.7
+        }
+      },
+      "registration_report": [
+        "Edges (with a pairwise fit): 2",
+        "Rejected by pairwise residual: 0",
+        "Rejected by cycle consistency: 0  (triangles: 0, fundamental cycles: 0)",
+        "Triangles tested: 0  (failing at first pass: 0)",
+        "Largest cycle error: n/a",
+        "Edges in no triangle (uncheckable): 2",
+        "Connected component: 3/4 frames",
+        "World residual, all edges: median 1.9 cm, max 2.0 cm",
+        "World residual, NON-TREE edges only (0): none - nothing independently checked",
+        "Frames cycle-verified: none   placed but unverified: [0, 1, 3]",
+        "Camera height deviation: 0.09 m from median",
+        "Verdict: REJECTED"
+      ],
+      "registration": {
+        "validated": true,
+        "n_frames": 4,
+        "n_registered": 3,
+        "reference": 1,
+        "trustworthy": false,
+        "candidate_edges": 2,
+        "rejected_pairwise": 0,
+        "rejected_cycle": 0,
+        "cycle": {
+          "triangles_total": 0,
+          "triangles_failing_initial": 0,
+          "rounds": 0,
+          "removed": [],
+          "edges_in_no_triangle": 2,
+          "fundamental_cycles_cut": []
+        },
+        "components": [
+          [
+            0,
+            1,
+            3
+          ]
+        ],
+        "unregistered": [
+          {
+            "frame": 2,
+            "reason": "no usable edge to any other frame"
+          }
+        ],
+        "residual_median_cm": 1.95,
+        "residual_p90_cm": 1.97,
+        "residual_max_cm": 1.97,
+        "residual_max_nontree_cm": null,
+        "n_nontree_edges": 0,
+        "verified_frames": [],
+        "unverified_frames": [
+          0,
+          1,
+          3
+        ],
+        "camera_height_dev_m": 0.095,
+        "dropped_implausible": [],
+        "edges": [
+          {
+            "edge": [
+              0,
+              1
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 55,
+            "pair_scale": 0.9314,
+            "pair_residual_cm": 1.84,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": 1.97,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              0,
+              2
+            ],
+            "status": "no_overlap",
+            "reason": "only 17 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              3
+            ],
+            "status": "no_overlap",
+            "reason": "only 20 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              2
+            ],
+            "status": "no_overlap",
+            "reason": "only 24 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              3
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 25,
+            "pair_scale": 1.0503,
+            "pair_residual_cm": 1.92,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": 1.92,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              2,
+              3
+            ],
+            "status": "no_overlap",
+            "reason": "only 22 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          }
+        ],
+        "scales": [
+          1.0737,
+          1.0,
+          1.0,
+          1.0503
+        ],
+        "gates": {
+          "cycle_m": 0.3,
+          "pair_residual_m": 0.12,
+          "world_residual_m": 0.25,
+          "camera_height_dev_m": 0.9
+        },
+        "seconds": 1.2
+      }
+    },
+    {
+      "room": "Room 1",
+      "n_frames": 6,
+      "modes": {
+        "per_frame": {
+          "approach": "photo_per_frame",
+          "mode": "per_frame",
+          "ceiling_m": 2.9541,
+          "ceiling_err_pct": 11.9,
+          "spread_m": 0.171,
+          "spread_kind": "between-frame SD",
+          "wall_spans_m": [
+            2.042
+          ],
+          "n_walls": 5,
+          "corners_accepted": 3,
+          "corners_rejected": 8,
+          "polygon": false,
+          "polygon_reason": "unposed frames share no coordinate system; a polygon would be fabricated",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": null,
+          "n_frames": 6,
+          "posed_frames": 0,
+          "residual_max_cm": null,
+          "residual_median_cm": null,
+          "rejected_pairwise": null,
+          "rejected_cycle": null,
+          "trustworthy": null,
+          "fell_back": false,
+          "seconds": 22.0,
+          "wall_seconds": 22.0
+        },
+        "multiview_unvalidated": {
+          "approach": "photo_multiview_unvalidated",
+          "mode": "fused",
+          "ceiling_m": 2.7195,
+          "ceiling_err_pct": 3.01,
+          "spread_m": 0.4902,
+          "spread_kind": "plane thickness",
+          "wall_spans_m": [
+            3.502,
+            3.096,
+            3.788
+          ],
+          "n_walls": 5,
+          "corners_accepted": 5,
+          "corners_rejected": 5,
+          "polygon": false,
+          "polygon_reason": "walls did not close into a polygon",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": 6,
+          "n_frames": 6,
+          "posed_frames": 6,
+          "residual_max_cm": null,
+          "residual_median_cm": 3.69,
+          "rejected_pairwise": null,
+          "rejected_cycle": null,
+          "trustworthy": null,
+          "fell_back": false,
+          "seconds": 14.5,
+          "wall_seconds": 14.5
+        },
+        "multiview": {
+          "approach": "photo_multiview",
+          "mode": "fused",
+          "ceiling_m": null,
+          "ceiling_err_pct": null,
+          "spread_m": null,
+          "spread_kind": null,
+          "wall_spans_m": [
+            3.529,
+            2.323
+          ],
+          "n_walls": 7,
+          "corners_accepted": 7,
+          "corners_rejected": 14,
+          "polygon": false,
+          "polygon_reason": "walls did not close into a polygon",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": 4,
+          "n_frames": 6,
+          "posed_frames": 4,
+          "residual_max_cm": 7.69,
+          "residual_median_cm": 3.9,
+          "rejected_pairwise": 1,
+          "rejected_cycle": 3,
+          "trustworthy": true,
+          "fell_back": false,
+          "seconds": 6.4,
+          "wall_seconds": 6.4
+        }
+      },
+      "registration_report": [
+        "Edges (with a pairwise fit): 10",
+        "Rejected by pairwise residual: 1",
+        "Rejected by cycle consistency: 3  (triangles: 1, fundamental cycles: 2)",
+        "Triangles tested: 4  (failing at first pass: 2)",
+        "Largest cycle error: 2.36 m",
+        "Edges in no triangle (uncheckable): 0",
+        "Connected component: 4/6 frames",
+        "World residual, all edges: median 3.9 cm, max 7.7 cm",
+        "World residual, NON-TREE edges only (1): max 7.7 cm",
+        "Frames cycle-verified: [2, 3, 4]   placed but unverified: [1]",
+        "Camera height deviation: 0.70 m from median   dropped 1 implausible frame(s)",
+        "Verdict: TRUSTED"
+      ],
+      "registration": {
+        "validated": true,
+        "n_frames": 6,
+        "n_registered": 4,
+        "reference": 3,
+        "trustworthy": true,
+        "candidate_edges": 10,
+        "rejected_pairwise": 1,
+        "rejected_cycle": 3,
+        "cycle": {
+          "triangles_total": 4,
+          "triangles_failing_initial": 2,
+          "rounds": 1,
+          "removed": [
+            {
+              "edge": [
+                0,
+                3
+              ],
+              "blame_m": 3.469
+            }
+          ],
+          "edges_in_no_triangle": 0,
+          "fundamental_cycles_cut": [
+            {
+              "edge": [
+                3,
+                5
+              ],
+              "loop_closure_cm": 155.0
+            },
+            {
+              "edge": [
+                4,
+                5
+              ],
+              "loop_closure_cm": 496.9
+            }
+          ],
+          "largest_cycle_error_cm": 235.87
+        },
+        "components": [
+          [
+            1,
+            2,
+            3,
+            4
+          ]
+        ],
+        "unregistered": [
+          {
+            "frame": 0,
+            "reason": "camera placed 2.30 m from the median camera height - physically impossible for one operator walking one room"
+          },
+          {
+            "frame": 5,
+            "reason": "reachable only through a frame dropped as implausible"
+          }
+        ],
+        "residual_median_cm": 3.9,
+        "residual_p90_cm": 6.85,
+        "residual_max_cm": 7.69,
+        "residual_max_nontree_cm": 7.69,
+        "n_nontree_edges": 1,
+        "verified_frames": [
+          2,
+          3,
+          4
+        ],
+        "unverified_frames": [
+          1
+        ],
+        "camera_height_dev_m": 0.696,
+        "dropped_implausible": [
+          {
+            "frame": 0,
+            "height_m": -2.737,
+            "median_height_m": -0.438,
+            "deviation_m": 2.299,
+            "reason": "camera placed 2.30 m from the median camera height, over the 0.9 m protocol band"
+          }
+        ],
+        "edges": [
+          {
+            "edge": [
+              0,
+              1
+            ],
+            "status": "implausible",
+            "reason": "frame 0 placed at an impossible camera height",
+            "inliers": 15,
+            "pair_scale": 0.9843,
+            "pair_residual_cm": 3.24,
+            "cycle_error_cm": 235.87,
+            "triangles": 1,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              2
+            ],
+            "status": "no_overlap",
+            "reason": "only 50 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              3
+            ],
+            "status": "cycle",
+            "reason": "in 2 failing triangle(s), worst cycle error 236 cm over the 30 cm gate",
+            "inliers": 12,
+            "pair_scale": 1.0655,
+            "pair_residual_cm": 4.84,
+            "cycle_error_cm": 235.87,
+            "triangles": 2,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              4
+            ],
+            "status": "pairwise",
+            "reason": "depth-scale ratio 1.40 outside (0.7, 1.4) - a mismatch, not scale disagreement",
+            "inliers": 10,
+            "pair_scale": 1.4018,
+            "pair_residual_cm": 2.33,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              5
+            ],
+            "status": "implausible",
+            "reason": "frame 0 placed at an impossible camera height",
+            "inliers": 18,
+            "pair_scale": 0.9236,
+            "pair_residual_cm": 2.17,
+            "cycle_error_cm": 170.98,
+            "triangles": 1,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              2
+            ],
+            "status": "no_overlap",
+            "reason": "only 38 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              3
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 12,
+            "pair_scale": 0.9806,
+            "pair_residual_cm": 2.86,
+            "cycle_error_cm": 235.87,
+            "triangles": 1,
+            "world_residual_cm": 2.92,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              1,
+              4
+            ],
+            "status": "no_overlap",
+            "reason": "only 38 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 40 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              2,
+              3
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 65,
+            "pair_scale": 1.0931,
+            "pair_residual_cm": 5.34,
+            "cycle_error_cm": 8.52,
+            "triangles": 1,
+            "world_residual_cm": 4.89,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              2,
+              4
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 60,
+            "pair_scale": 0.9672,
+            "pair_residual_cm": 1.18,
+            "cycle_error_cm": 8.52,
+            "triangles": 1,
+            "world_residual_cm": 7.69,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              2,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 39 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              3,
+              4
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 185,
+            "pair_scale": 1.0621,
+            "pair_residual_cm": 2.8,
+            "cycle_error_cm": 11.66,
+            "triangles": 2,
+            "world_residual_cm": 2.8,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              3,
+              5
+            ],
+            "status": "cycle",
+            "reason": "in 2 failing fundamental cycle(s), worst loop closure 155 cm over the 25 cm gate",
+            "inliers": 79,
+            "pair_scale": 0.9877,
+            "pair_residual_cm": 2.89,
+            "cycle_error_cm": 170.98,
+            "triangles": 2,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              4,
+              5
+            ],
+            "status": "cycle",
+            "reason": "in 1 failing fundamental cycle(s), worst loop closure 497 cm over the 25 cm gate",
+            "inliers": 10,
+            "pair_scale": 0.9306,
+            "pair_residual_cm": 4.43,
+            "cycle_error_cm": 496.86,
+            "triangles": 1,
+            "world_residual_cm": null,
+            "in_tree": false
+          }
+        ],
+        "scales": [
+          1.0,
+          1.0197,
+          0.9149,
+          1.0,
+          1.0621,
+          1.0
+        ],
+        "gates": {
+          "cycle_m": 0.3,
+          "pair_residual_m": 0.12,
+          "world_residual_m": 0.25,
+          "camera_height_dev_m": 0.9
+        },
+        "seconds": 2.4
+      }
+    },
+    {
+      "room": "Room 2",
+      "n_frames": 6,
+      "modes": {
+        "per_frame": {
+          "approach": "photo_per_frame",
+          "mode": "per_frame",
+          "ceiling_m": 2.9068,
+          "ceiling_err_pct": 10.1,
+          "spread_m": 0.3007,
+          "spread_kind": "between-frame SD",
+          "wall_spans_m": [
+            2.061
+          ],
+          "n_walls": 5,
+          "corners_accepted": 4,
+          "corners_rejected": 9,
+          "polygon": false,
+          "polygon_reason": "unposed frames share no coordinate system; a polygon would be fabricated",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": null,
+          "n_frames": 6,
+          "posed_frames": 0,
+          "residual_max_cm": null,
+          "residual_median_cm": null,
+          "rejected_pairwise": null,
+          "rejected_cycle": null,
+          "trustworthy": null,
+          "fell_back": false,
+          "seconds": 18.6,
+          "wall_seconds": 18.6
+        },
+        "multiview_unvalidated": {
+          "approach": "photo_multiview_unvalidated",
+          "mode": "fused",
+          "ceiling_m": null,
+          "ceiling_err_pct": null,
+          "spread_m": null,
+          "spread_kind": null,
+          "wall_spans_m": [
+            3.248,
+            3.127,
+            3.818
+          ],
+          "n_walls": 5,
+          "corners_accepted": 5,
+          "corners_rejected": 5,
+          "polygon": false,
+          "polygon_reason": "walls did not close into a polygon",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": 6,
+          "n_frames": 6,
+          "posed_frames": 6,
+          "residual_max_cm": null,
+          "residual_median_cm": 3.69,
+          "rejected_pairwise": null,
+          "rejected_cycle": null,
+          "trustworthy": null,
+          "fell_back": false,
+          "seconds": 9.8,
+          "wall_seconds": 9.8
+        },
+        "multiview": {
+          "approach": "photo_multiview",
+          "mode": "fused",
+          "ceiling_m": null,
+          "ceiling_err_pct": null,
+          "spread_m": null,
+          "spread_kind": null,
+          "wall_spans_m": [
+            3.502,
+            3.345,
+            4.093,
+            3.288
+          ],
+          "n_walls": 5,
+          "corners_accepted": 6,
+          "corners_rejected": 4,
+          "polygon": true,
+          "polygon_reason": null,
+          "floor_area_m2": 12.535,
+          "openings": 0,
+          "registered": 6,
+          "n_frames": 6,
+          "posed_frames": 6,
+          "residual_max_cm": 5.28,
+          "residual_median_cm": 4.07,
+          "rejected_pairwise": 0,
+          "rejected_cycle": 1,
+          "trustworthy": true,
+          "fell_back": false,
+          "seconds": 9.1,
+          "wall_seconds": 9.1
+        }
+      },
+      "registration_report": [
+        "Edges (with a pairwise fit): 7",
+        "Rejected by pairwise residual: 0",
+        "Rejected by cycle consistency: 1  (triangles: 0, fundamental cycles: 1)",
+        "Triangles tested: 1  (failing at first pass: 0)",
+        "Largest cycle error: 0.03 m",
+        "Edges in no triangle (uncheckable): 4",
+        "Connected component: 6/6 frames",
+        "World residual, all edges: median 4.1 cm, max 5.3 cm",
+        "World residual, NON-TREE edges only (1): max 4.3 cm",
+        "Frames cycle-verified: [0, 3, 5]   placed but unverified: [1, 2, 4]",
+        "Camera height deviation: 0.20 m from median",
+        "Verdict: TRUSTED"
+      ],
+      "registration": {
+        "validated": true,
+        "n_frames": 6,
+        "n_registered": 6,
+        "reference": 3,
+        "trustworthy": true,
+        "candidate_edges": 7,
+        "rejected_pairwise": 0,
+        "rejected_cycle": 1,
+        "cycle": {
+          "triangles_total": 1,
+          "triangles_failing_initial": 0,
+          "rounds": 0,
+          "removed": [],
+          "edges_in_no_triangle": 4,
+          "fundamental_cycles_cut": [
+            {
+              "edge": [
+                3,
+                4
+              ],
+              "loop_closure_cm": 203.6
+            }
+          ],
+          "largest_cycle_error_cm": 2.55
+        },
+        "components": [
+          [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        ],
+        "unregistered": [],
+        "residual_median_cm": 4.07,
+        "residual_p90_cm": 4.81,
+        "residual_max_cm": 5.28,
+        "residual_max_nontree_cm": 4.34,
+        "n_nontree_edges": 1,
+        "verified_frames": [
+          0,
+          3,
+          5
+        ],
+        "unverified_frames": [
+          1,
+          2,
+          4
+        ],
+        "camera_height_dev_m": 0.198,
+        "dropped_implausible": [],
+        "edges": [
+          {
+            "edge": [
+              0,
+              1
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 146,
+            "pair_scale": 1.006,
+            "pair_residual_cm": 2.62,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": 2.66,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              0,
+              2
+            ],
+            "status": "no_overlap",
+            "reason": "only 23 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              3
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 22,
+            "pair_scale": 1.0208,
+            "pair_residual_cm": 3.55,
+            "cycle_error_cm": 2.55,
+            "triangles": 1,
+            "world_residual_cm": 4.34,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              4
+            ],
+            "status": "no_overlap",
+            "reason": "only 29 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              5
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 25,
+            "pair_scale": 0.9552,
+            "pair_residual_cm": 4.02,
+            "cycle_error_cm": 2.55,
+            "triangles": 1,
+            "world_residual_cm": 4.08,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              1,
+              2
+            ],
+            "status": "no_overlap",
+            "reason": "only 22 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              3
+            ],
+            "status": "no_overlap",
+            "reason": "only 27 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              4
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 24,
+            "pair_scale": 0.9878,
+            "pair_residual_cm": 3.99,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": 4.07,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              1,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 19 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              2,
+              3
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 17,
+            "pair_scale": 0.9437,
+            "pair_residual_cm": 4.98,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": 5.28,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              2,
+              4
+            ],
+            "status": "no_overlap",
+            "reason": "only 23 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              2,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 15 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              3,
+              4
+            ],
+            "status": "cycle",
+            "reason": "in 1 failing fundamental cycle(s), worst loop closure 204 cm over the 25 cm gate",
+            "inliers": 10,
+            "pair_scale": 0.9855,
+            "pair_residual_cm": 4.56,
+            "cycle_error_cm": 203.6,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              3,
+              5
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 280,
+            "pair_scale": 0.9687,
+            "pair_residual_cm": 3.76,
+            "cycle_error_cm": 2.55,
+            "triangles": 1,
+            "world_residual_cm": 3.76,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              4,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 12 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          }
+        ],
+        "scales": [
+          1.0142,
+          1.0203,
+          1.0597,
+          1.0,
+          1.0078,
+          0.9687
+        ],
+        "gates": {
+          "cycle_m": 0.3,
+          "pair_residual_m": 0.12,
+          "world_residual_m": 0.25,
+          "camera_height_dev_m": 0.9
+        },
+        "seconds": 2.6
+      }
+    },
+    {
+      "room": "Room 3",
+      "n_frames": 6,
+      "modes": {
+        "per_frame": {
+          "approach": "photo_per_frame",
+          "mode": "per_frame",
+          "ceiling_m": 2.6892,
+          "ceiling_err_pct": 1.86,
+          "spread_m": 0.3876,
+          "spread_kind": "between-frame SD",
+          "wall_spans_m": [
+            1.829
+          ],
+          "n_walls": 7,
+          "corners_accepted": 8,
+          "corners_rejected": 16,
+          "polygon": false,
+          "polygon_reason": "unposed frames share no coordinate system; a polygon would be fabricated",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": null,
+          "n_frames": 6,
+          "posed_frames": 0,
+          "residual_max_cm": null,
+          "residual_median_cm": null,
+          "rejected_pairwise": null,
+          "rejected_cycle": null,
+          "trustworthy": null,
+          "fell_back": false,
+          "seconds": 24.6,
+          "wall_seconds": 24.6
+        },
+        "multiview_unvalidated": {
+          "approach": "photo_multiview_unvalidated",
+          "mode": "fused",
+          "ceiling_m": 2.8524,
+          "ceiling_err_pct": 8.04,
+          "spread_m": 0.1993,
+          "spread_kind": "plane thickness",
+          "wall_spans_m": [
+            3.325,
+            3.205,
+            2.727
+          ],
+          "n_walls": 7,
+          "corners_accepted": 9,
+          "corners_rejected": 12,
+          "polygon": false,
+          "polygon_reason": "walls did not close into a polygon",
+          "floor_area_m2": null,
+          "openings": 0,
+          "registered": 6,
+          "n_frames": 6,
+          "posed_frames": 6,
+          "residual_max_cm": null,
+          "residual_median_cm": 3.72,
+          "rejected_pairwise": null,
+          "rejected_cycle": null,
+          "trustworthy": null,
+          "fell_back": false,
+          "seconds": 11.4,
+          "wall_seconds": 11.4
+        },
+        "multiview": {
+          "approach": "photo_multiview",
+          "mode": "fused",
+          "ceiling_m": 2.9781,
+          "ceiling_err_pct": 12.81,
+          "spread_m": 0.0719,
+          "spread_kind": "plane thickness",
+          "wall_spans_m": [
+            3.307,
+            3.171,
+            2.982,
+            3.066
+          ],
+          "n_walls": 7,
+          "corners_accepted": 12,
+          "corners_rejected": 9,
+          "polygon": false,
+          "polygon_reason": "walls did not close into a polygon",
+          "floor_area_m2": null,
+          "openings": 1,
+          "registered": 6,
+          "n_frames": 6,
+          "posed_frames": 6,
+          "residual_max_cm": 3.74,
+          "residual_median_cm": 2.57,
+          "rejected_pairwise": 1,
+          "rejected_cycle": 2,
+          "trustworthy": true,
+          "fell_back": false,
+          "seconds": 11.5,
+          "wall_seconds": 11.5
+        }
+      },
+      "registration_report": [
+        "Edges (with a pairwise fit): 9",
+        "Rejected by pairwise residual: 1",
+        "Rejected by cycle consistency: 2  (triangles: 1, fundamental cycles: 1)",
+        "Triangles tested: 3  (failing at first pass: 2)",
+        "Largest cycle error: 0.81 m",
+        "Edges in no triangle (uncheckable): 1",
+        "Connected component: 6/6 frames",
+        "World residual, all edges: median 2.6 cm, max 3.7 cm",
+        "World residual, NON-TREE edges only (1): max 2.8 cm",
+        "Frames cycle-verified: [0, 2, 4]   placed but unverified: [1, 3, 5]",
+        "Camera height deviation: 0.31 m from median",
+        "Verdict: TRUSTED"
+      ],
+      "registration": {
+        "validated": true,
+        "n_frames": 6,
+        "n_registered": 6,
+        "reference": 3,
+        "trustworthy": true,
+        "candidate_edges": 9,
+        "rejected_pairwise": 1,
+        "rejected_cycle": 2,
+        "cycle": {
+          "triangles_total": 3,
+          "triangles_failing_initial": 2,
+          "rounds": 1,
+          "removed": [
+            {
+              "edge": [
+                1,
+                2
+              ],
+              "blame_m": 0.896
+            }
+          ],
+          "edges_in_no_triangle": 1,
+          "fundamental_cycles_cut": [
+            {
+              "edge": [
+                2,
+                3
+              ],
+              "loop_closure_cm": 40.9
+            }
+          ],
+          "largest_cycle_error_cm": 81.08
+        },
+        "components": [
+          [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        ],
+        "unregistered": [],
+        "residual_median_cm": 2.57,
+        "residual_p90_cm": 3.27,
+        "residual_max_cm": 3.74,
+        "residual_max_nontree_cm": 2.8,
+        "n_nontree_edges": 1,
+        "verified_frames": [
+          0,
+          2,
+          4
+        ],
+        "unverified_frames": [
+          1,
+          3,
+          5
+        ],
+        "camera_height_dev_m": 0.313,
+        "dropped_implausible": [],
+        "edges": [
+          {
+            "edge": [
+              0,
+              1
+            ],
+            "status": "no_overlap",
+            "reason": "only 10 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              2
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 33,
+            "pair_scale": 0.9069,
+            "pair_residual_cm": 0.81,
+            "cycle_error_cm": 7.02,
+            "triangles": 1,
+            "world_residual_cm": 0.81,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              0,
+              3
+            ],
+            "status": "no_overlap",
+            "reason": "only 18 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              4
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 29,
+            "pair_scale": 0.7362,
+            "pair_residual_cm": 0.48,
+            "cycle_error_cm": 7.02,
+            "triangles": 1,
+            "world_residual_cm": 2.8,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              0,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 17 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              2
+            ],
+            "status": "cycle",
+            "reason": "in 2 failing triangle(s), worst cycle error 81 cm over the 30 cm gate",
+            "inliers": 17,
+            "pair_scale": 0.8916,
+            "pair_residual_cm": 3.88,
+            "cycle_error_cm": 81.08,
+            "triangles": 2,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              1,
+              3
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 34,
+            "pair_scale": 1.0463,
+            "pair_residual_cm": 0.97,
+            "cycle_error_cm": 81.08,
+            "triangles": 1,
+            "world_residual_cm": 0.93,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              1,
+              4
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 25,
+            "pair_scale": 1.0075,
+            "pair_residual_cm": 2.67,
+            "cycle_error_cm": 68.53,
+            "triangles": 1,
+            "world_residual_cm": 2.55,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              1,
+              5
+            ],
+            "status": "pairwise",
+            "reason": "depth-scale ratio 1.63 outside (0.7, 1.4) - a mismatch, not scale disagreement",
+            "inliers": 10,
+            "pair_scale": 1.6337,
+            "pair_residual_cm": 3.28,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              2,
+              3
+            ],
+            "status": "cycle",
+            "reason": "in 2 failing fundamental cycle(s), worst loop closure 41 cm over the 25 cm gate",
+            "inliers": 13,
+            "pair_scale": 1.0048,
+            "pair_residual_cm": 3.76,
+            "cycle_error_cm": 81.08,
+            "triangles": 1,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              2,
+              4
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 106,
+            "pair_scale": 1.0615,
+            "pair_residual_cm": 4.12,
+            "cycle_error_cm": 68.53,
+            "triangles": 2,
+            "world_residual_cm": 3.74,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              2,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 31 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              3,
+              4
+            ],
+            "status": "no_overlap",
+            "reason": "only 37 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          },
+          {
+            "edge": [
+              3,
+              5
+            ],
+            "status": "kept",
+            "reason": "",
+            "inliers": 192,
+            "pair_scale": 0.9405,
+            "pair_residual_cm": 2.58,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": 2.58,
+            "in_tree": true
+          },
+          {
+            "edge": [
+              4,
+              5
+            ],
+            "status": "no_overlap",
+            "reason": "only 30 matches, similarity fit failed",
+            "inliers": 0,
+            "pair_scale": 1.0,
+            "pair_residual_cm": null,
+            "cycle_error_cm": null,
+            "triangles": 0,
+            "world_residual_cm": null,
+            "in_tree": false
+          }
+        ],
+        "scales": [
+          1.0002,
+          0.9558,
+          0.9071,
+          1.0,
+          0.9629,
+          0.9405
+        ],
+        "gates": {
+          "cycle_m": 0.3,
+          "pair_residual_m": 0.12,
+          "world_residual_m": 0.25,
+          "camera_height_dev_m": 0.9
+        },
+        "seconds": 3.2
+      }
+    }
+  ]
+}
