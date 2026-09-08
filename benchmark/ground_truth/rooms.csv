@@ -12,11 +12,11 @@ room_02_bed_master,bedroom,wall,w3,length,3.05,,laser,,at skirting level
 room_02_bed_master,bedroom,wall,w4,length,3.4,,laser,,at skirting level
 room_02_bed_master,bedroom,ceiling,c1,height,2.74,,laser,,"point 1 - use opposite corners, floors are not level"
 room_02_bed_master,bedroom,ceiling,c2,height,2.74,,laser,,"point 2 - use opposite corners, floors are not level"
-room_02_bed_master,bedroom,floor,f1,area,2.9,,derived,,"derive from walls if rectangular, else measure directly"
-room_03_bed_two,bedroom,wall,w1,length,3.24,,laser,,at skirting level
-room_03_bed_two,bedroom,wall,w2,length,2.9,,laser,,at skirting level
-room_03_bed_two,bedroom,wall,w3,length,3.24,,laser,,at skirting level
-room_03_bed_two,bedroom,wall,w4,length,0,,laser,,at skirting level
+room_02_bed_master,bedroom,floor,f1,area,0,,derived,,"derive from walls if rectangular, else measure directly"
+room_03_bed_two,bedroom,wall,w1,length,2.9,,laser,,at skirting level
+room_03_bed_two,bedroom,wall,w2,length,3.24,,laser,,at skirting level
+room_03_bed_two,bedroom,wall,w3,length,2.9,,laser,,at skirting level
+room_03_bed_two,bedroom,wall,w4,length,3.24,,laser,,at skirting level
 room_03_bed_two,bedroom,ceiling,c1,height,2.74,,laser,,"point 1 - use opposite corners, floors are not level"
 room_03_bed_two,bedroom,ceiling,c2,height,2.74,,laser,,"point 2 - use opposite corners, floors are not level"
 room_03_bed_two,bedroom,floor,f1,area,0,,derived,,"derive from walls if rectangular, else measure directly"

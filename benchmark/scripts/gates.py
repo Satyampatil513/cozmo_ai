@@ -86,6 +86,20 @@ def score_ceiling(measured, truth) -> dict:
             "gate_cm": CEILING_GATE_M * 100}
 
 
+def score_area(measured, truth, derived: bool) -> dict:
+    """Floor area. Not a named gate on its own - the brief gates the whole-property FOOTPRINT
+    at +/- 8% - but it is the same quantity per room, and it is the sharpest single check on a
+    polygon because an area error compounds both dimensions."""
+    if measured is None:
+        return {"status": "NO OUTPUT", "detail": "no closed polygon, so no area"}
+    if truth is None:
+        return {"status": "UNSCOREABLE", "detail": "no area in the survey"}
+    err = (measured - truth) / truth * 100
+    return {"status": "PASS" if abs(err) <= 8.0 else "FAIL",
+            "measured_m2": round(measured, 3), "truth_m2": round(truth, 3),
+            "truth_derived": derived, "err_pct": round(err, 2), "gate_pct": 8.0}
+
+
 def score_walls(spans, truth_dims, tier) -> dict:
     gate = WALL_GATE_PCT.get(tier)
     if not truth_dims:
@@ -152,7 +166,8 @@ def main() -> int:
                 "ceiling": score_ceiling(s.get("ceiling_m"), gt.ceiling_m),
                 "walls": score_walls(s.get("wall_spans_m") or [], gt.dimensions, "photo"),
                 "polygon": s.get("polygon"),
-                "floor_area_m2": s.get("floor_area_m2"),
+                "area": score_area(s.get("floor_area_m2"), gt.floor_area_m2,
+                                   gt.floor_area_derived),
             }
         report["rooms"].append(row)
 
@@ -221,7 +236,11 @@ def print_summary(rep: dict, modes: list[str]) -> None:
             if w.get("scored"):
                 ws += f" {w['within_gate']}/{w['scored']} within {w['gate_pct']}%"
                 ws += f", worst {w['worst_err_pct']:.1f}%"
-            print(f"    {m:<24} ceiling {cs}   walls {ws}")
+            a = s["area"]
+            as_ = ("" if a["status"] in ("NO OUTPUT", "UNSCOREABLE")
+                   else f"   area {a['measured_m2']:.2f} vs {a['truth_m2']:.2f} "
+                        f"({a['err_pct']:+.1f}%) {a['status']}")
+            print(f"    {m:<24} ceiling {cs}   walls {ws}{as_}")
 
 
 def write_md(rep: dict, modes: list[str]) -> None:

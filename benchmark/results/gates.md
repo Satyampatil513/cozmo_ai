@@ -5,10 +5,10 @@ Ground truth: `benchmark/ground_truth/`, laser survey. Ceiling 2.74 m (supersede
 
 ## Ground-truth coverage
 
-- Rooms: **4/5** complete
-- Wall lengths: **19/20** measured
+- Rooms: **5/5** complete
+- Wall lengths: **20/20** measured
 - Ceiling readings: **10**
-- Floor areas: **4** derived from walls (none measured directly)
+- Floor areas: **5** derived from walls (none measured directly)
 - Openings: **5/5** measured
 
 ## Ceiling height - gate <= 1.5 cm per room
