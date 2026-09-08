@@ -31,6 +31,18 @@ from PIL import Image, ExifTags, ImageOps
 
 from pipeline.types import Frame, RoomCapture, Scale, Scene
 
+# iPhones shoot HEIC by default. Our own benchmark happens to be JPEG because the operator set
+# "Most Compatible", so nothing here ever exercised HEIC - but the walk-in test uses THEIR
+# phone with THEIR settings, and a decoder we never installed is not a defensible way to fail
+# in front of an examiner. Registered here if available; if it is not and a HEIC turns up, the
+# loader says exactly which package to install rather than dying inside PIL.
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+    HEIF_OK = True
+except Exception:
+    HEIF_OK = False
+
 WORK_PX = 1024                  # long edge fed to the depth model
 PHOTO_EXT = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
 DOORWAY_RE = re.compile(r"doorway_to_(.+?)(?:[_-]([ab]))?$", re.I)
@@ -94,6 +106,11 @@ def intrinsics_from_exif(exif: dict, w: int, h: int) -> tuple[np.ndarray, str]:
 
 def load_frame(path: str, work_px: int = WORK_PX) -> Frame:
     """One image -> Frame with upright pixels and matching intrinsics."""
+    if os.path.splitext(path)[1].lower() in {".heic", ".heif"} and not HEIF_OK:
+        raise SystemExit(
+            f"{os.path.basename(path)} is HEIC and no HEIC decoder is installed."
+            f"  Fix: pip install pillow-heif."
+            f"  Or on the phone: Settings > Camera > Formats > Most Compatible, and re-shoot.")
     with Image.open(path) as raw:
         exif = _exif(raw)
         im = ImageOps.exif_transpose(raw).convert("RGB")   # apply Orientation, once, here
@@ -138,17 +155,50 @@ def read_camera_height(capture_dir: str) -> Optional[float]:
     return None
 
 
+def _photo_files(d: str) -> list[str]:
+    return sorted(os.path.join(d, f) for f in os.listdir(d)
+                  if os.path.splitext(f)[1].lower() in PHOTO_EXT)
+
+
 def load(capture_dir: str, work_px: int = WORK_PX) -> Scene:
-    """Per-room folders of stills -> Scene. One RoomCapture per folder."""
+    """Stills -> Scene. One RoomCapture per room folder, or one room for a flat folder.
+
+    BOTH LAYOUTS ARE ACCEPTED, and that is not a convenience.
+
+    The per-room layout (`capture/Kitchen/*.jpg`) is what our protocol asks for and what our
+    own benchmark uses. But a flat folder of photos is the most natural thing a person hands
+    you, and until now it produced ZERO rooms - silently, exit code 0, an empty result.json,
+    and a console line reading "tier=photo 17.8s" that looks exactly like success. At a
+    walk-in test where someone drops a folder of photos of one room on us, that is a total
+    failure wearing the costume of a clean run.
+
+    So: subfolders if any contain photos, otherwise the folder itself as a single room named
+    after it. Nothing is guessed - the two cases are distinguished by where the files are.
+    """
     rooms: list[RoomCapture] = []
     device = "unknown"
 
-    for entry in sorted(os.listdir(capture_dir)):
-        d = os.path.join(capture_dir, entry)
-        if not os.path.isdir(d):
-            continue
-        files = sorted(os.path.join(d, f) for f in os.listdir(d)
-                       if os.path.splitext(f)[1].lower() in PHOTO_EXT)
+    if not os.path.isdir(capture_dir):
+        raise SystemExit(f"not a directory: {capture_dir}")
+
+    entries = sorted(os.listdir(capture_dir))
+    subdirs = [e for e in entries if os.path.isdir(os.path.join(capture_dir, e))
+               and _photo_files(os.path.join(capture_dir, e))]
+    flat = _photo_files(capture_dir)
+
+    if not subdirs and not flat:
+        raise SystemExit(
+            f"no photos found in {capture_dir}. "
+            f"Expected either per-room subfolders (capture/Kitchen/*.jpg) or photos "
+            f"directly in this folder. "
+            f"Recognised extensions: {', '.join(sorted(PHOTO_EXT))}")
+
+    # A flat folder is one room. Named after the folder so the result is not labelled "room".
+    layout = [(e, os.path.join(capture_dir, e)) for e in subdirs] or [
+        (os.path.basename(os.path.normpath(capture_dir)) or "room", capture_dir)]
+
+    for entry, d in layout:
+        files = _photo_files(d)
         if not files:
             continue
 
@@ -168,6 +218,9 @@ def load(capture_dir: str, work_px: int = WORK_PX) -> Scene:
             tier="photo",
             doorway_hints=[t[3:] for f in frames for t in f.tags if t.startswith("to:")],
         ))
+
+    if not rooms:
+        raise SystemExit(f"found photo files under {capture_dir} but built no rooms from them")
 
     return Scene(tier="photo", device=device, rooms=rooms,
                  camera_height_m=read_camera_height(capture_dir))

@@ -1,36 +1,36 @@
 room_id,room_type,element_type,element_id,dimension,value_m,value_m_pass2,tool,measured_at,notes
-room_01_living,living,wall,w1,length,,,laser,,at skirting level
-room_01_living,living,wall,w2,length,,,laser,,at skirting level
-room_01_living,living,wall,w3,length,,,laser,,at skirting level
-room_01_living,living,wall,w4,length,,,laser,,at skirting level
-room_01_living,living,ceiling,c1,height,,,laser,,"point 1 - use opposite corners, floors are not level"
-room_01_living,living,ceiling,c2,height,,,laser,,"point 2 - use opposite corners, floors are not level"
-room_01_living,living,floor,f1,area,,,derived,,"derive from walls if rectangular, else measure directly"
-room_02_bed_master,bedroom,wall,w1,length,,,laser,,at skirting level
-room_02_bed_master,bedroom,wall,w2,length,,,laser,,at skirting level
-room_02_bed_master,bedroom,wall,w3,length,,,laser,,at skirting level
-room_02_bed_master,bedroom,wall,w4,length,,,laser,,at skirting level
-room_02_bed_master,bedroom,ceiling,c1,height,,,laser,,"point 1 - use opposite corners, floors are not level"
-room_02_bed_master,bedroom,ceiling,c2,height,,,laser,,"point 2 - use opposite corners, floors are not level"
-room_02_bed_master,bedroom,floor,f1,area,,,derived,,"derive from walls if rectangular, else measure directly"
-room_03_bed_two,bedroom,wall,w1,length,,,laser,,at skirting level
-room_03_bed_two,bedroom,wall,w2,length,,,laser,,at skirting level
-room_03_bed_two,bedroom,wall,w3,length,,,laser,,at skirting level
-room_03_bed_two,bedroom,wall,w4,length,,,laser,,at skirting level
-room_03_bed_two,bedroom,ceiling,c1,height,,,laser,,"point 1 - use opposite corners, floors are not level"
-room_03_bed_two,bedroom,ceiling,c2,height,,,laser,,"point 2 - use opposite corners, floors are not level"
-room_03_bed_two,bedroom,floor,f1,area,,,derived,,"derive from walls if rectangular, else measure directly"
-room_04_bed_three,bedroom,wall,w1,length,,,laser,,at skirting level
-room_04_bed_three,bedroom,wall,w2,length,,,laser,,at skirting level
-room_04_bed_three,bedroom,wall,w3,length,,,laser,,at skirting level
-room_04_bed_three,bedroom,wall,w4,length,,,laser,,at skirting level
-room_04_bed_three,bedroom,ceiling,c1,height,,,laser,,"point 1 - use opposite corners, floors are not level"
-room_04_bed_three,bedroom,ceiling,c2,height,,,laser,,"point 2 - use opposite corners, floors are not level"
-room_04_bed_three,bedroom,floor,f1,area,,,derived,,"derive from walls if rectangular, else measure directly"
-room_05_hall,connector,wall,w1,length,,,laser,,at skirting level
-room_05_hall,connector,wall,w2,length,,,laser,,at skirting level
-room_05_hall,connector,wall,w3,length,,,laser,,at skirting level
-room_05_hall,connector,wall,w4,length,,,laser,,at skirting level
-room_05_hall,connector,ceiling,c1,height,,,laser,,"point 1 - use opposite corners, floors are not level"
-room_05_hall,connector,ceiling,c2,height,,,laser,,"point 2 - use opposite corners, floors are not level"
-room_05_hall,connector,floor,f1,area,,,derived,,"derive from walls if rectangular, else measure directly"
+room_01_living,kitchen,wall,w1,length,2.09,,laser,,at skirting level
+room_01_living,kitchen,wall,w2,length,2.63,,laser,,at skirting level
+room_01_living,kitchen,wall,w3,length,2.09,,laser,,at skirting level
+room_01_living,kitchen,wall,w4,length,2.63,,laser,,at skirting level
+room_01_living,kitchen,ceiling,c1,height,2.74,,laser,,"point 1 - use opposite corners, floors are not level"
+room_01_living,kitchen,ceiling,c2,height,2.74,,laser,,"point 2 - use opposite corners, floors are not level"
+room_01_living,kitchen,floor,f1,area,0,,derived,,"derive from walls if rectangular, else measure directly"
+room_02_bed_master,bedroom,wall,w1,length,3.05,,laser,,at skirting level
+room_02_bed_master,bedroom,wall,w2,length,3.4,,laser,,at skirting level
+room_02_bed_master,bedroom,wall,w3,length,3.05,,laser,,at skirting level
+room_02_bed_master,bedroom,wall,w4,length,3.4,,laser,,at skirting level
+room_02_bed_master,bedroom,ceiling,c1,height,2.74,,laser,,"point 1 - use opposite corners, floors are not level"
+room_02_bed_master,bedroom,ceiling,c2,height,2.74,,laser,,"point 2 - use opposite corners, floors are not level"
+room_02_bed_master,bedroom,floor,f1,area,2.9,,derived,,"derive from walls if rectangular, else measure directly"
+room_03_bed_two,bedroom,wall,w1,length,3.24,,laser,,at skirting level
+room_03_bed_two,bedroom,wall,w2,length,2.9,,laser,,at skirting level
+room_03_bed_two,bedroom,wall,w3,length,3.24,,laser,,at skirting level
+room_03_bed_two,bedroom,wall,w4,length,0,,laser,,at skirting level
+room_03_bed_two,bedroom,ceiling,c1,height,2.74,,laser,,"point 1 - use opposite corners, floors are not level"
+room_03_bed_two,bedroom,ceiling,c2,height,2.74,,laser,,"point 2 - use opposite corners, floors are not level"
+room_03_bed_two,bedroom,floor,f1,area,0,,derived,,"derive from walls if rectangular, else measure directly"
+room_04_bed_three,bedroom,wall,w1,length,2.93,,laser,,at skirting level
+room_04_bed_three,bedroom,wall,w2,length,3,,laser,,at skirting level
+room_04_bed_three,bedroom,wall,w3,length,2.93,,laser,,at skirting level
+room_04_bed_three,bedroom,wall,w4,length,3,,laser,,at skirting level
+room_04_bed_three,bedroom,ceiling,c1,height,2.74,,laser,,"point 1 - use opposite corners, floors are not level"
+room_04_bed_three,bedroom,ceiling,c2,height,2.74,,laser,,"point 2 - use opposite corners, floors are not level"
+room_04_bed_three,bedroom,floor,f1,area,0,,derived,,"derive from walls if rectangular, else measure directly"
+room_05_hall,connector,wall,w1,length,3.52,,laser,,at skirting level
+room_05_hall,connector,wall,w2,length,5.44,,laser,,at skirting level
+room_05_hall,connector,wall,w3,length,3.52,,laser,,at skirting level
+room_05_hall,connector,wall,w4,length,5.44,,laser,,at skirting level
+room_05_hall,connector,ceiling,c1,height,2.74,,laser,,"point 1 - use opposite corners, floors are not level"
+room_05_hall,connector,ceiling,c2,height,2.74,,laser,,"point 2 - use opposite corners, floors are not level"
+room_05_hall,connector,floor,f1,area,0,,derived,,"derive from walls if rectangular, else measure directly"

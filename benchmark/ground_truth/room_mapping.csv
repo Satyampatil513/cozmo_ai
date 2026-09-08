@@ -1,0 +1,15 @@
+# Which capture folder corresponds to which ground-truth room_id.
+#
+# Recorded explicitly rather than inferred at scoring time. The capture folders are named by
+# what the operator saw ("Room 1"); the ground-truth sheet is named by the floor plan
+# ("room_02_bed_master"). Nothing in either name makes the correspondence recoverable, so a
+# scorer that guessed would silently compare one bedroom's measurement against another's and
+# report the difference as pipeline error.
+#
+# Confirmed by the capture operator, 2026-09-08.
+capture_room,ground_truth_room_id,note
+Kitchen,room_01_living,"sheet row is typed 'kitchen'; the room_id label 'living' is legacy"
+Room 1,room_02_bed_master,
+Room 2,room_03_bed_two,"w4 not measured; area derivable only if the room is rectangular"
+Room 3,room_04_bed_three,
+Hallway,room_05_hall,"the connector"

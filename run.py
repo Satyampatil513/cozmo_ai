@@ -157,6 +157,13 @@ def main() -> int:
         depth_backend = get_backend(args.backend)
 
     scene, meta = load_scene(args.input, tier, args, depth_backend)
+    if not scene.rooms or not scene.frames:
+        # A run that finds nothing must not exit 0 having written an empty result. Before this
+        # guard, a flat folder of photos printed "tier=photo 17.8s" and wrote a result with no
+        # rooms in it - indistinguishable from success at a glance, which is the worst way to
+        # fail in front of someone timing you.
+        raise SystemExit(f"no usable frames found in {args.input} (tier={tier}). Nothing to "
+                         f"measure. Run scripts/validate_capture.py for a per-room diagnosis.")
 
     from pipeline.measure import measure_room
     rooms = []

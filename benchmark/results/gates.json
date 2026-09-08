@@ -1,0 +1,654 @@
+{
+  "coverage": {
+    "rooms": 5,
+    "rooms_complete": 4,
+    "walls_measured": 19,
+    "walls_expected": 20,
+    "ceilings_measured": 10,
+    "floor_areas_derived": 4,
+    "openings_rows": 5,
+    "openings_measured": 5,
+    "mapping_entries": 5
+  },
+  "gates": {
+    "openings": {
+      "status": "SCOREABLE",
+      "gate": "<= 2 cm on >= 85%",
+      "detail": ""
+    },
+    "repeatability": {
+      "status": "UNSCOREABLE",
+      "gate": "two captures of one room agree within 1 cm or 0.5% per wall",
+      "detail": "no room has been captured twice at the same tier"
+    },
+    "drift_ablation": {
+      "status": "FAIL",
+      "gate": "report states drift handling, with an on/off ablation",
+      "detail": "multi-room stitching is NOT BUILT, so there is no stitched footprint to ablate. Within a room, photo multiview now rejects inconsistent poses by cycle consistency (see multiview_findings.md), but the brief's row is about accumulated drift across rooms and that is not addressed"
+    },
+    "photo_stitch": {
+      "status": "FAIL",
+      "gate": "per-room photo folders -> one stitched plan, footprint +/- 8%",
+      "detail": "pipeline/stitching/stitch.py raises NotImplementedError"
+    },
+    "head_to_head": {
+      "status": "NOT BUILT",
+      "gate": "beat or tie an incumbent app on >= 70% of shared dimensions, 2 rooms",
+      "detail": "no incumbent app export captured"
+    }
+  },
+  "rooms": [
+    {
+      "capture_room": "Hallway",
+      "ground_truth_room": "room_05_hall",
+      "modes": {
+        "per_frame": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.8537,
+            "truth_m": 2.74,
+            "error_m": 0.1137,
+            "error_cm": 11.4,
+            "error_pct": 4.15,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 2.688,
+                "truth_m": 3.52,
+                "err_pct": -23.64
+              },
+              {
+                "measured_m": null,
+                "truth_m": 5.44,
+                "err_pct": null,
+                "note": "dimension never measured by the pipeline"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 1,
+            "worst_err_pct": 23.64
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        },
+        "multiview_unvalidated": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.8537,
+            "truth_m": 2.74,
+            "error_m": 0.1137,
+            "error_cm": 11.4,
+            "error_pct": 4.15,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 2.688,
+                "truth_m": 3.52,
+                "err_pct": -23.64
+              },
+              {
+                "measured_m": null,
+                "truth_m": 5.44,
+                "err_pct": null,
+                "note": "dimension never measured by the pipeline"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 1,
+            "worst_err_pct": 23.64
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        },
+        "multiview": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.8537,
+            "truth_m": 2.74,
+            "error_m": 0.1137,
+            "error_cm": 11.4,
+            "error_pct": 4.15,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 2.688,
+                "truth_m": 3.52,
+                "err_pct": -23.64
+              },
+              {
+                "measured_m": null,
+                "truth_m": 5.44,
+                "err_pct": null,
+                "note": "dimension never measured by the pipeline"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 1,
+            "worst_err_pct": 23.64
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        }
+      },
+      "truth": {
+        "ceiling_m": 2.74,
+        "dimensions_m": [
+          5.44,
+          3.52
+        ],
+        "floor_area_m2": 19.149,
+        "floor_area_derived": true,
+        "notes": []
+      }
+    },
+    {
+      "capture_room": "Kitchen",
+      "ground_truth_room": "room_01_living",
+      "modes": {
+        "per_frame": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.9554,
+            "truth_m": 2.74,
+            "error_m": 0.2154,
+            "error_cm": 21.5,
+            "error_pct": 7.86,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 1.498,
+                "truth_m": 2.09,
+                "err_pct": -28.33
+              },
+              {
+                "measured_m": null,
+                "truth_m": 2.63,
+                "err_pct": null,
+                "note": "dimension never measured by the pipeline"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 1,
+            "worst_err_pct": 28.33
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        },
+        "multiview_unvalidated": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.9172,
+            "truth_m": 2.74,
+            "error_m": 0.1772,
+            "error_cm": 17.7,
+            "error_pct": 6.47,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 3.333,
+                "truth_m": 2.63,
+                "err_pct": 26.73
+              },
+              {
+                "measured_m": 3.22,
+                "truth_m": 2.09,
+                "err_pct": 54.07
+              },
+              {
+                "measured_m": 2.619,
+                "truth_m": null,
+                "err_pct": null,
+                "note": "no unmatched ground-truth dimension left"
+              },
+              {
+                "measured_m": 2.025,
+                "truth_m": null,
+                "err_pct": null,
+                "note": "no unmatched ground-truth dimension left"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 2,
+            "worst_err_pct": 54.07
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        },
+        "multiview": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.9554,
+            "truth_m": 2.74,
+            "error_m": 0.2154,
+            "error_cm": 21.5,
+            "error_pct": 7.86,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 1.498,
+                "truth_m": 2.09,
+                "err_pct": -28.33
+              },
+              {
+                "measured_m": null,
+                "truth_m": 2.63,
+                "err_pct": null,
+                "note": "dimension never measured by the pipeline"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 1,
+            "worst_err_pct": 28.33
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        }
+      },
+      "truth": {
+        "ceiling_m": 2.74,
+        "dimensions_m": [
+          2.63,
+          2.09
+        ],
+        "floor_area_m2": 5.497,
+        "floor_area_derived": true,
+        "notes": []
+      }
+    },
+    {
+      "capture_room": "Room 1",
+      "ground_truth_room": "room_02_bed_master",
+      "modes": {
+        "per_frame": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.9541,
+            "truth_m": 2.74,
+            "error_m": 0.2141,
+            "error_cm": 21.4,
+            "error_pct": 7.81,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 2.042,
+                "truth_m": 3.05,
+                "err_pct": -33.05
+              },
+              {
+                "measured_m": null,
+                "truth_m": 3.4,
+                "err_pct": null,
+                "note": "dimension never measured by the pipeline"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 1,
+            "worst_err_pct": 33.05
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        },
+        "multiview_unvalidated": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.7195,
+            "truth_m": 2.74,
+            "error_m": -0.0205,
+            "error_cm": -2.1,
+            "error_pct": -0.75,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 3.788,
+                "truth_m": 3.4,
+                "err_pct": 11.41
+              },
+              {
+                "measured_m": 3.502,
+                "truth_m": 3.05,
+                "err_pct": 14.82
+              },
+              {
+                "measured_m": 3.096,
+                "truth_m": null,
+                "err_pct": null,
+                "note": "no unmatched ground-truth dimension left"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 2,
+            "worst_err_pct": 14.82
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        },
+        "multiview": {
+          "ceiling": {
+            "status": "ABSTAINED",
+            "detail": "pipeline declined to report a ceiling"
+          },
+          "walls": {
+            "status": "PARTIAL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 3.529,
+                "truth_m": 3.4,
+                "err_pct": 3.79
+              },
+              {
+                "measured_m": 2.323,
+                "truth_m": 3.05,
+                "err_pct": -23.84
+              }
+            ],
+            "within_gate": 1,
+            "scored": 2,
+            "worst_err_pct": 23.84
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        }
+      },
+      "truth": {
+        "ceiling_m": 2.74,
+        "dimensions_m": [
+          3.4,
+          3.05
+        ],
+        "floor_area_m2": 10.37,
+        "floor_area_derived": true,
+        "notes": [
+          "CONFLICT: sheet states floor area 2.9 m2, but its own walls give 10.37 m2. Using the derived value; confirm the sheet."
+        ]
+      }
+    },
+    {
+      "capture_room": "Room 2",
+      "ground_truth_room": "room_03_bed_two",
+      "modes": {
+        "per_frame": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.9068,
+            "truth_m": 2.74,
+            "error_m": 0.1668,
+            "error_cm": 16.7,
+            "error_pct": 6.09,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 2.061,
+                "truth_m": 2.9,
+                "err_pct": -28.93
+              },
+              {
+                "measured_m": null,
+                "truth_m": 3.24,
+                "err_pct": null,
+                "note": "dimension never measured by the pipeline"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 1,
+            "worst_err_pct": 28.93
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        },
+        "multiview_unvalidated": {
+          "ceiling": {
+            "status": "ABSTAINED",
+            "detail": "pipeline declined to report a ceiling"
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 3.818,
+                "truth_m": 3.24,
+                "err_pct": 17.84
+              },
+              {
+                "measured_m": 3.248,
+                "truth_m": 2.9,
+                "err_pct": 12.0
+              },
+              {
+                "measured_m": 3.127,
+                "truth_m": null,
+                "err_pct": null,
+                "note": "no unmatched ground-truth dimension left"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 2,
+            "worst_err_pct": 17.84
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        },
+        "multiview": {
+          "ceiling": {
+            "status": "ABSTAINED",
+            "detail": "pipeline declined to report a ceiling"
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 4.093,
+                "truth_m": 3.24,
+                "err_pct": 26.33
+              },
+              {
+                "measured_m": 3.502,
+                "truth_m": 2.9,
+                "err_pct": 20.76
+              },
+              {
+                "measured_m": 3.345,
+                "truth_m": null,
+                "err_pct": null,
+                "note": "no unmatched ground-truth dimension left"
+              },
+              {
+                "measured_m": 3.288,
+                "truth_m": null,
+                "err_pct": null,
+                "note": "no unmatched ground-truth dimension left"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 2,
+            "worst_err_pct": 26.33
+          },
+          "polygon": true,
+          "floor_area_m2": 12.535
+        }
+      },
+      "truth": {
+        "ceiling_m": 2.74,
+        "dimensions_m": [
+          3.24,
+          2.9
+        ],
+        "floor_area_m2": null,
+        "floor_area_derived": false,
+        "notes": [
+          "wall w4 not measured",
+          "floor area not derivable: not all four walls measured"
+        ]
+      }
+    },
+    {
+      "capture_room": "Room 3",
+      "ground_truth_room": "room_04_bed_three",
+      "modes": {
+        "per_frame": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.6892,
+            "truth_m": 2.74,
+            "error_m": -0.0508,
+            "error_cm": -5.1,
+            "error_pct": -1.85,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 1.829,
+                "truth_m": 2.93,
+                "err_pct": -37.58
+              },
+              {
+                "measured_m": null,
+                "truth_m": 3.0,
+                "err_pct": null,
+                "note": "dimension never measured by the pipeline"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 1,
+            "worst_err_pct": 37.58
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        },
+        "multiview_unvalidated": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.8524,
+            "truth_m": 2.74,
+            "error_m": 0.1124,
+            "error_cm": 11.2,
+            "error_pct": 4.1,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 3.325,
+                "truth_m": 3.0,
+                "err_pct": 10.83
+              },
+              {
+                "measured_m": 3.205,
+                "truth_m": 2.93,
+                "err_pct": 9.39
+              },
+              {
+                "measured_m": 2.727,
+                "truth_m": null,
+                "err_pct": null,
+                "note": "no unmatched ground-truth dimension left"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 2,
+            "worst_err_pct": 10.83
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        },
+        "multiview": {
+          "ceiling": {
+            "status": "FAIL",
+            "measured_m": 2.9781,
+            "truth_m": 2.74,
+            "error_m": 0.2381,
+            "error_cm": 23.8,
+            "error_pct": 8.69,
+            "gate_cm": 1.5
+          },
+          "walls": {
+            "status": "FAIL",
+            "gate_pct": 8.0,
+            "pairs": [
+              {
+                "measured_m": 3.307,
+                "truth_m": 3.0,
+                "err_pct": 10.23
+              },
+              {
+                "measured_m": 3.171,
+                "truth_m": 2.93,
+                "err_pct": 8.23
+              },
+              {
+                "measured_m": 3.066,
+                "truth_m": null,
+                "err_pct": null,
+                "note": "no unmatched ground-truth dimension left"
+              },
+              {
+                "measured_m": 2.982,
+                "truth_m": null,
+                "err_pct": null,
+                "note": "no unmatched ground-truth dimension left"
+              }
+            ],
+            "within_gate": 0,
+            "scored": 2,
+            "worst_err_pct": 10.23
+          },
+          "polygon": false,
+          "floor_area_m2": null
+        }
+      },
+      "truth": {
+        "ceiling_m": 2.74,
+        "dimensions_m": [
+          3.0,
+          2.93
+        ],
+        "floor_area_m2": 8.79,
+        "floor_area_derived": true,
+        "notes": []
+      }
+    }
+  ]
+}

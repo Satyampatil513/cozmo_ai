@@ -4,6 +4,7 @@ scipy>=1.13
 shapely>=2.0
 svgwrite>=1.4
 pillow>=10.0
+pillow-heif>=0.16          # iPhones shoot HEIC by default; without this the photo tier refuses them
 jsonschema>=4.20
 record3d>=1.4
 torch>=2.14
