@@ -318,7 +318,7 @@ so a ceiling stain reaches `CONCEAL-WATER-01` instead of a wall rule.
 | Video/LiDAR multi-room stitching + blueprint | Built, synthetic-validated; no real multi-room result has closed yet (§7) |
 | Fix loop, declared and shipped | Done |
 | Ceiling / wall gates | Fail — root cause identified, not a mystery |
-| Repeatability gate | Two real video captures of one property exist; not yet cross-scored |
+| Repeatability gate | Unscoreable. The gate needs one room captured twice at one tier with per-wall lengths from each run. The two real video captures (IMG_0460, IMG_0462) are multi-room walkthroughs with no room correspondence and no closing polygon (§7 — odometry posts 14–16 / 4 of their frames); the only scalar both runs produce, ceiling height, disagrees by 19 cm (2.83 m vs 3.02 m) |
 | Head-to-head vs incumbent | Not built |
 | Damage detection | First pass built, synthetic-tested; run once against real Room 1 (§8). Not wired into `run.py` — no staged-damage capture to validate the hook |
 
