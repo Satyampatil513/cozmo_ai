@@ -15,7 +15,7 @@ git clone <repo>
 cd cozmo-ai
 python -m venv .venv && . .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python scripts/fetch_weights.py                     # not built yet
+python scripts/fetch_weights.py                     # pre-fetch depth model weights
 ```
 
 ## Run one capture

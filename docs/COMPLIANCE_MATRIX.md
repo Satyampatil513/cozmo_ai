@@ -45,7 +45,7 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 | 2.8 | Scope line items keyed to surfaces | pipeline/damage/scope.py | list | NOT BUILT |
 | 2.9 | Confidence interval on every measurement | pipeline/confidence/intervals.py | Measurement | PARTIAL |
 | 2.10 | One command per capture | run.py | CLI, all 3 tiers | DONE |
-| 2.11 | JSON to published schema | schemas/output.schema.json | schema | PARTIAL - emitted, not yet validated in CI |
+| 2.11 | JSON to published schema | pipeline/output/schema_adapter.py + tests/test_output_schema.py | adapter + 13/13 real results validated | PARTIAL - validates cleanly, but `walls[]` (the schema's polygon-based model) has no field for wall-pair separation, our most reliable measurement - stated in the adapter's own docstring, not silently worked around |
 | 2.12 | Rendered plan | pipeline/output/render.py | SVG + PNG | PARTIAL - draws a stitched video/lidar property (room polygons, dims with interval width, connections); single-room/photo has no adjacency to draw and is out of scope for this renderer |
 
 ## Open interpretation: which gates loosen at the photo and video tiers
@@ -106,6 +106,7 @@ between tiers does not.
 | 5.1 | Commit history | .git | log | IN PROGRESS |
 | D.0 | Capture sessions executed | benchmark/raw/ | 29 photos / 1 clip / 1 .r3d | DONE - photo and video shot in the 3BHK; .r3d supplied by the team (different property, waived) |
 | D.3 | README, fresh machine to running in 15 min | README.md | doc | PARTIAL |
+| C.1 | Weights fetched by script, not committed as binaries | scripts/fetch_weights.py | CLI | DONE |
 | D.4 | Reproduction bundle | docs/REPRODUCTION.md | doc + script | NOT BUILT |
 | D.7 | Technical report, max 6 pages | docs/TECHNICAL_REPORT.md | doc + 9 stage images | DONE |
 | D.8 | Raw benchmark data | benchmark/raw/ | data | DONE - photo, video and lidar captures committed |
