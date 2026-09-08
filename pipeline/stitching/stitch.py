@@ -140,6 +140,12 @@ def find_adjacent_rooms(walls_per_room: list[list], sub_rooms: list[dict],
             edges.append({
                 "rooms": [sub_rooms[a]["room_id"], sub_rooms[b]["room_id"]],
                 "room_indices": [a, b],
+                # Which wall, in EACH room's own wall list, was matched for this specific
+                # connection - not necessarily index 0 of either. A room usually has more
+                # than one wall, and a correction that grabbed "the first wall" instead of
+                # "the wall this connection is actually about" would shift the room along an
+                # arbitrary, likely wrong, direction.
+                "wall_indices": [ia, ib],
                 "gap_m": round(gap, 3),
                 "has_opening": opening is not None,
                 "opening": opening,
@@ -332,13 +338,18 @@ def apply_correction(sub_rooms: list[dict], geoms: list, floors: list,
         changed = False
         for e in list(remaining):
             a, b = e["room_indices"]
+            ia, ib = e["wall_indices"]
             if a in fixed and b not in fixed:
-                anchor, other = a, b
+                anchor, other, anchor_wall_idx = a, b, ia
             elif b in fixed and a not in fixed:
-                anchor, other = b, a
+                anchor, other, anchor_wall_idx = b, a, ib
             else:
                 continue
-            wa = walls_per_room[anchor][0] if walls_per_room[anchor] else None
+            # The wall THIS connection actually matched in the anchor's own list - not
+            # index 0, which could be any of that room's walls and usually is not the one
+            # shared with `other`.
+            wa = (walls_per_room[anchor][anchor_wall_idx]
+                 if anchor_wall_idx < len(walls_per_room[anchor]) else None)
             if wa is None or geoms[other] is None:
                 fixed.add(other)
                 remaining.remove(e)
