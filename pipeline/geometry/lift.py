@@ -85,31 +85,44 @@ def normals_from_points(P: np.ndarray, depth: np.ndarray) -> tuple[np.ndarray, n
 
 def lift(depth: np.ndarray, K: np.ndarray, T_wc: np.ndarray | None = None,
          stride: int = 2, max_points: int | None = 120_000,
-         rng: np.random.Generator | None = None
-         ) -> tuple[np.ndarray, np.ndarray]:
+         rng: np.random.Generator | None = None,
+         return_pixels: bool = False):
     """Depth map -> (points Nx3, normals Nx3), optionally transformed into world frame.
 
     `stride` subsamples the pixel grid before anything else. A 1024x768 depth map is 786k
     points, which is far more than plane fitting needs and makes RANSAC needlessly slow;
     surfaces are smooth, so every second pixel carries almost the same information.
+
+    With `return_pixels`, also returns an Nx2 array of the (row, col) each surviving point
+    came from, in the ORIGINAL depth grid. That mapping is what lets a plane's inliers be
+    painted back onto the photo they came from, which turns "frame 12 abstained, score
+    0.0002" into a picture of which surface the selector actually chose. Carried through the
+    same subsample-mask-decimate sequence as the points, so it cannot drift out of step.
     """
     P = depth_to_points(depth, K)
     n, valid = normals_from_points(P, depth)
 
+    h, w = depth.shape[:2]
+    rows, cols = np.meshgrid(np.arange(h), np.arange(w), indexing="ij")
+    pix = np.stack([rows, cols], axis=-1)
+
     P = P[::stride, ::stride].reshape(-1, 3)
     n = n[::stride, ::stride].reshape(-1, 3)
+    pix = pix[::stride, ::stride].reshape(-1, 2)
     valid = valid[::stride, ::stride].reshape(-1)
 
-    P, n = P[valid], n[valid]
+    P, n, pix = P[valid], n[valid], pix[valid]
 
     if max_points is not None and len(P) > max_points:
         rng = rng or np.random.default_rng(0)
         idx = rng.choice(len(P), max_points, replace=False)
-        P, n = P[idx], n[idx]
+        P, n, pix = P[idx], n[idx], pix[idx]
 
     if T_wc is not None:
         R, t = T_wc[:3, :3], T_wc[:3, 3]
         P = P @ R.T + t
         n = n @ R.T
 
+    if return_pixels:
+        return P, n, pix
     return P, n

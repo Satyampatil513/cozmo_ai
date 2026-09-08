@@ -416,6 +416,19 @@ Not tested: multi-room stitching, damage detection, rendered plans — none are 
 
 ## Known failure modes
 
+**The floor plane lands on the bed when no real floor is visible.** Found with the diagnostic
+overlays (`--debug`), invisible in every table before that. `Room 2 / IMG_0447` reports 2.288 m
+against 2.64 m - 35 cm low, a bed height - with the floor plane painted over the whole bed.
+The `bounding` signal cannot reject it because the true floor was never observed, so the bed
+genuinely *is* the lowest surface in that cloud.
+
+Consequence: **the photo tier's +1.8% mean is two errors cancelling**, not accuracy.
+Bedrooms average -2.2% with SD 11.2% and are bimodal (-13% to -19% where the bed is taken as
+floor, +10% to +19% where real floor shows); hallway and kitchen average +8.7% with SD 4.5%
+from depth scale alone, with visibly correct geometry. Full write-up in
+`benchmark/results/debug_findings.md`, including the retraction of an earlier claim that
+furniture was *not* the cause.
+
 **Video odometry breaks and does not recover.** On the real clip it failed at link 15 (7
 inliers) and every later keyframe stayed unposed — 15 of 30 posed. There is no relocalisation
 or loop closure. A break is reported rather than filled with an identity pose, which would

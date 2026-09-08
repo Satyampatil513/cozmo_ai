@@ -108,6 +108,8 @@ def main() -> int:
     ap.add_argument("--lidar-stride", type=int, default=30)
     ap.add_argument("--video-every-n", type=int, default=30)
     ap.add_argument("--max-frames", type=int, default=None)
+    ap.add_argument("--debug", action="store_true",
+                    help="write per-frame diagnostic overlays to <out>/debug/")
     ap.add_argument("--no-drift-correction", action="store_true",
                     help="ablation: compose poses as-is, no pose graph (not yet implemented)")
     args = ap.parse_args()
@@ -128,7 +130,9 @@ def main() -> int:
     for room in scene.rooms:
         print(f"  measuring {room.room_id} ({len(room.frames)} frames)...")
         rooms.append(measure_room(room, depth_backend=depth_backend,
-                                  cache=not args.no_cache))
+                                  cache=not args.no_cache,
+                                  debug_dir=os.path.join(args.out, "debug") if args.debug
+                                  else None))
 
     result = {
         "schema_version": SCHEMA_VERSION,
@@ -164,6 +168,8 @@ def main() -> int:
               f"ceiling={f'{ch:.3f}m' if ch else 'abstained':<12} "
               f"walls={r.get('n_walls','-')} openings={len(r.get('openings', []))}")
     print(f"wrote {out_path}")
+    if args.debug:
+        print(f"wrote diagnostic overlays to {os.path.join(args.out, 'debug')}/")
     print("NOT BUILT: multi-room stitching, damage detection, rendered plan")
     return 0
 

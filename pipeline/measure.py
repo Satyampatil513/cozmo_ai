@@ -93,8 +93,46 @@ def _measure_cloud(points: np.ndarray, normals: np.ndarray, tier: str,
     return out
 
 
+def _write_debug(frame, pts, nrm, pix, m: dict, room: RoomCapture, debug_dir: str) -> str:
+    """Re-fit the same cloud, keeping the labelled planes, and render a diagnostic sheet.
+
+    _measure_cloud discards the plane objects once it has the numbers, so they are recomputed
+    here with identical arguments. RANSAC is seeded deterministically, so this reproduces the
+    exact planes that produced the numbers rather than a second, different opinion of them.
+    """
+    import os as _os
+
+    from pipeline.geometry.planes import classify, estimate_gravity, extract_planes,         merge_coplanar, regularize
+    from pipeline.output.debug import frame_sheet
+
+    planes = extract_planes(pts, nrm, threshold=PLANE_THRESHOLD.get(room.tier, 0.05))
+    if not planes:
+        return ""
+    planes = merge_coplanar(planes, pts)
+    g = estimate_gravity(planes, prior=CAMERA_UP)
+    planes, g, score = classify(planes, g, pts, True)
+    planes = regularize(planes, g, pts)
+
+    ch = m.get("ceiling_height")
+    lines = [
+        f"score {m.get('selection_score', 0):.4f}   walls {m.get('n_walls', 0)}",
+        (f"ceiling {ch:.3f} m" if ch else "ABSTAINED"),
+    ]
+    if m.get("abstain_reason"):
+        lines.append(m["abstain_reason"][:44])
+    if m.get("openings"):
+        lines.append(f"{len(m['openings'])} opening(s)")
+    lines.append(f"gravity {np.round(g, 2).tolist()}")
+
+    name = _os.path.splitext(_os.path.basename(frame.image_path))[0].replace("#", "_")
+    return frame_sheet(
+        frame.image, frame.depth, pix, planes,
+        {"title": f"{room.room_id} / {name}", "lines": lines},
+        _os.path.join(debug_dir, f"{room.room_id}_{name}.png"), stride=2)
+
+
 def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
-                 work_px: int = 1024) -> dict:
+                 work_px: int = 1024, debug_dir: Optional[str] = None) -> dict:
     """Measure one RoomCapture. Runs depth first where the tier does not supply it."""
     t0 = time.time()
     frames = room.frames
@@ -133,18 +171,26 @@ def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
             prior = ARKIT_WORLD_UP
         result.update(_measure_cloud(fc.points, fc.normals, room.tier, prior,
                                      camera_at_origin=False, want_polygon=True))
+        if debug_dir and len(fc.points):
+            from pipeline.output.debug import topdown_panel
+            import os as _os
+            g = np.asarray(result.get("gravity", [0, 1, 0]), dtype=float)
+            result["debug_topdown"] = topdown_panel(
+                fc.points, g, _os.path.join(debug_dir, f"{room.room_id}_topdown.png"))
     else:
         result["mode"] = "per_frame"
         per = []
         for f in frames:
             if f.depth is None or f.K is None:
                 continue
-            pts, nrm = lift(f.depth, f.K, stride=2)
+            pts, nrm, pix = lift(f.depth, f.K, stride=2, return_pixels=True)
             if len(pts) < 2000:
                 continue
             m = _measure_cloud(pts, nrm, room.tier, CAMERA_UP,
                                camera_at_origin=True, want_polygon=False)
             m["frame"] = f.image_path
+            if debug_dir:
+                m["debug_sheet"] = _write_debug(f, pts, nrm, pix, m, room, debug_dir)
             per.append(m)
         result["per_frame"] = per
 

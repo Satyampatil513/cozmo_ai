@@ -36,8 +36,16 @@ flattering and wrong, which is precisely the failure mode the SD column exists t
 every frame, and Room 3 / IMG_0453 recovers 2.640 m against a true 2.64 m — exact. The
 deterministic half is behaving as the synthetic tests said it would.
 
-**It is not furniture.** A bed top mistaken for the floor was the leading hypothesis and it is
-wrong: the frame that lands exactly on truth is in a bedroom with a large bed.
+**~~It is not furniture.~~ RETRACTED — see `debug_findings.md`.** This originally read: "a bed
+top mistaken for the floor was the leading hypothesis and it is wrong: the frame that lands
+exactly on truth is in a bedroom with a large bed."
+
+That reasoning was faulty and the conclusion is false. One frame landing on truth in a bedroom
+shows only that the failure is not universal; it says nothing about the frames that were
+wrong, which is where the evidence was. Diagnostic overlays later showed the floor plane
+painted over the entire bed in `Room 2 / IMG_0447` - 35 cm low, exactly a bed height - and a
+29 cm systematic gap between rooms with beds and rooms with open floor. Furniture is a leading
+cause after all.
 
 **It is the depth model's absolute scale**, and the structure of the error is informative:
 
