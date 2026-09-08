@@ -291,14 +291,17 @@ def main() -> int:
                  f"{blueprint_report['rooms_unplaced']}"
                 if blueprint_report['rooms_unplaced'] else "") + ")")
     # Stated once, honestly, rather than as a blanket line every run repeats regardless of
-    # what just happened: stitching and the blueprint are built for video/lidar and ran on
-    # THIS capture whenever it produced more than one room; photo-tier stitching and damage
-    # detection are not built at all, on any capture.
-    not_built = ["damage detection"]
+    # what just happened.
+    damage_regions = sum(len(r.get("damage", [])) for r in rooms)
+    if damage_regions:
+        print(f"DAMAGE: {damage_regions} first-pass region(s) - unfitted thresholds, out of "
+              f"scope for scoring (see docs/TECHNICAL_REPORT.md section 8)")
+    not_built = []
     if not any(r.get("mode") == "stitched" for r in rooms):
-        not_built.insert(0, "multi-room stitching (photo-tier needs doorway-pair shots; "
-                            "video/lidar needs >1 room detected in this capture)")
-    print(f"NOT BUILT: {', '.join(not_built)}")
+        not_built.append("multi-room stitching (photo-tier needs doorway-pair shots; "
+                         "video/lidar needs >1 room detected in this capture)")
+    if not_built:
+        print(f"NOT BUILT: {', '.join(not_built)}")
     return 0
 
 

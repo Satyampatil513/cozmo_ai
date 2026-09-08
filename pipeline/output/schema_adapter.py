@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pipeline.confidence.intervals import length_measurement
+from pipeline.confidence.intervals import area_measurement, length_measurement
 from pipeline.types import Scale
 
 
@@ -50,6 +50,41 @@ def _opening_measurement(value_m: Optional[float], tier: str, scale: Scale, what
     if value_m is None:
         return None
     return length_measurement(value_m, tier, scale, what).to_json()
+
+
+def _damage_contract(d: dict, tier: str, scale: Scale) -> dict:
+    """Internal DamageRegion.to_json() (+ concealed_flag) -> schema `damage` item.
+
+    Extent is metric already; it is wrapped in the SAME error model used for wall lengths and
+    areas rather than a damage-specific one - a stain's long axis is a distance like any other.
+    `method` carries the "unfitted, out of scope" caveat so a consumer cannot read these as
+    calibrated.
+    """
+    note = "first-pass damage detector, unfitted thresholds, out of scope for scoring"
+    extent = {"area": area_measurement(d["area_m2"], tier, scale, note).to_json(),
+              "long_axis": length_measurement(d["long_axis_m"], tier, scale, note).to_json(),
+              "short_axis": length_measurement(d["short_axis_m"], tier, scale, note).to_json()}
+    return {
+        "id": d["id"],
+        "surface_id": d["surface_id"],
+        "class": d["class"],
+        "detection_confidence": round(float(d.get("confidence", 0.0)), 3),
+        "extent": extent,
+        "concealed_flag": d.get("concealed_flag", {"raised": False}),
+    }
+
+
+def _scope_contract(s: dict, tier: str, scale: Scale) -> dict:
+    """Internal scope line item -> schema `scope_items` item. The quantity is inherited from
+    the damage extent (never re-estimated), so it is wrapped in the matching measurement."""
+    q = s["quantity"]
+    note = "quantity inherited from damage extent; first pass, out of scope for scoring"
+    if q.get("unit") == "m2":
+        m = area_measurement(q["value"], tier, scale, note).to_json()
+    else:
+        m = length_measurement(q["value"], tier, scale, note).to_json()
+    return {"id": s["id"], "surface_id": s["surface_id"], "damage_id": s["damage_id"],
+            "action": s["action"], "quantity": m}
 
 
 def _room_contract(room: dict, tier: str, scale: Scale, room_id_override: Optional[str] = None
@@ -116,12 +151,13 @@ def _room_contract(room: dict, tier: str, scale: Scale, room_id_override: Option
                                                               "floor/ceiling pair"},
         "floor_area": fa or {"value": 0.0, "unit": "m2", "interval": [0.0, 0.0],
                              "confidence": 0.0, "method": "no closed polygon"},
-        # NOT BUILT, stated as empty arrays rather than omitted or fabricated - see module
-        # docstring. Each is a real pipeline stage (pipeline/damage/*.py) that raises
-        # NotImplementedError today; an empty list here is that fact, not a placeholder for it.
-        "surfaces": [],
-        "damage": [],
-        "scope_items": [],
+        # Damage runs on the per-frame path (photo tier), where the source RGB and a per-point
+        # pixel mapping exist. It is a first pass on unfitted thresholds and is out of scope
+        # for scoring in this submission - the arrays are empty on any capture where the
+        # detector did not run (fused clouds have no single source image).
+        "surfaces": [dict(s) for s in room.get("surfaces", [])],
+        "damage": [_damage_contract(d, tier, scale) for d in room.get("damage", [])],
+        "scope_items": [_scope_contract(s, tier, scale) for s in room.get("scope_items", [])],
     }
 
 

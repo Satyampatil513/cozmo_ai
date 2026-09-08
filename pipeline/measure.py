@@ -41,8 +41,15 @@ PLANE_THRESHOLD = {"lidar": 0.03, "video": 0.05, "photo": 0.05}
 
 def _measure_cloud(points: np.ndarray, normals: np.ndarray, tier: str,
                    gravity_prior: Optional[np.ndarray], camera_at_origin: bool,
-                   want_polygon: bool) -> dict:
-    """Point cloud -> every geometric quantity the output contract asks for."""
+                   want_polygon: bool, pix: Optional[np.ndarray] = None,
+                   image: Optional[np.ndarray] = None) -> dict:
+    """Point cloud -> every geometric quantity the output contract asks for.
+
+    `pix` and `image` are optional and only used to run the first-pass damage detector: it
+    needs the source RGB and a per-point pixel mapping, which exist on the per-frame path but
+    not on a fused multi-frame cloud. When they are absent the `damage`, `surfaces` and
+    `scope_items` keys are simply not set, and the schema adapter reports empty arrays.
+    """
     out: dict = {"n_points": int(len(points))}
     got = fit_floor_ceiling(points, normals,
                             threshold=PLANE_THRESHOLD.get(tier, 0.05),
@@ -98,7 +105,49 @@ def _measure_cloud(points: np.ndarray, normals: np.ndarray, tier: str,
         out["openings"] = []
         out["openings_error"] = f"{type(exc).__name__}: {exc}"
 
+    if pix is not None and image is not None:
+        try:
+            out.update(_measure_damage(walls, ceiling, points, pix, image, g, floor))
+        except Exception as exc:                   # first-pass detector, never fatal
+            out["damage"] = []
+            out["damage_error"] = f"{type(exc).__name__}: {exc}"
+
     return out
+
+
+def _measure_damage(walls, ceiling, points: np.ndarray, pix: np.ndarray, image: np.ndarray,
+                    g: np.ndarray, floor) -> dict:
+    """First-pass damage on the classified surfaces of one frame.
+
+    Out of scope for scoring in this submission (no staged damage, unfitted thresholds), but
+    the output contract lists per-surface damage, so the stage runs and emits rather than
+    reporting a permanent empty array. Every region carries the detector's own `notes` saying
+    the thresholds are defaults.
+    """
+    from pipeline.damage.detect import detect_damage_on_wall
+    from pipeline.damage.rules import evaluate as evaluate_rule
+    from pipeline.damage.scope import line_items
+
+    surfaces = [(f"w{i}", "wall", w) for i, w in enumerate(walls)]
+    if ceiling is not None:
+        surfaces.append(("ceiling", "ceiling", ceiling))
+
+    regions = []
+    surface_json = []
+    for sid, stype, plane in surfaces:
+        found = detect_damage_on_wall(plane, sid, stype, points, pix, image, g, floor)
+        if found:
+            surface_json.append({"id": sid, "type": stype})
+        regions.extend(found)
+
+    damage_json = []
+    for r in regions:
+        d = r.to_json()
+        d["concealed_flag"] = evaluate_rule(r, r.surface_type)
+        damage_json.append(d)
+
+    return {"damage": damage_json, "surfaces": surface_json,
+            "scope_items": line_items(regions)}
 
 
 def _write_debug(frame, pts, nrm, pix, m: dict, room: RoomCapture, debug_dir: str) -> str:
@@ -333,6 +382,7 @@ def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
     else:
         result["mode"] = "per_frame"
         per = []
+        damage_all, surfaces_all, scope_all = [], [], []
         for f in frames:
             if f.depth is None or f.K is None:
                 continue
@@ -340,12 +390,35 @@ def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
             if len(pts) < 2000:
                 continue
             m = _measure_cloud(pts, nrm, room.tier, CAMERA_UP,
-                               camera_at_origin=True, want_polygon=False)
+                               camera_at_origin=True, want_polygon=False,
+                               pix=pix, image=f.image)
             m["frame"] = f.image_path
             if debug_dir:
                 m["debug_sheet"] = _write_debug(f, pts, nrm, pix, m, room, debug_dir)
+            # Damage is per frame with no cross-frame association yet, so ids are prefixed by
+            # frame to keep them unique and every region is kept - a physical patch seen in
+            # three photos appears three times, stated rather than silently deduplicated.
+            fkey = f.image_path.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+            for d in m.get("damage", []):
+                d["id"] = f"{fkey}:{d['id']}"
+                d["surface_id"] = f"{fkey}:{d['surface_id']}"
+                d["frame"] = fkey
+                damage_all.append(d)
+            for s in m.get("surfaces", []):
+                surfaces_all.append({**s, "id": f"{fkey}:{s['id']}"})
+            for it in m.get("scope_items", []):
+                it["id"] = f"{fkey}:{it['id']}"
+                it["damage_id"] = f"{fkey}:{it['damage_id']}"
+                it["surface_id"] = f"{fkey}:{it['surface_id']}"
+                scope_all.append(it)
             per.append(m)
         result["per_frame"] = per
+        result["damage"] = damage_all
+        result["surfaces"] = surfaces_all
+        result["scope_items"] = scope_all
+        if damage_all:
+            result["damage_note"] = ("first-pass detector, unfitted thresholds, no cross-frame "
+                                     "association; out of scope for scoring in this submission")
 
         heights = [m["ceiling_height"] for m in per if m.get("ceiling_height")]
         result["reported_frames"] = len(heights)
