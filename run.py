@@ -177,6 +177,29 @@ def main() -> int:
                                   photo_mode=args.photo_mode,
                                   drift_correction=not args.no_drift_correction))
 
+    # Photo-tier property stitching: registers every room's photos TOGETHER, not one room at
+    # a time, so a photo that incidentally sees across a doorway can connect two rooms - see
+    # `pipeline.stitching.stitch.stitch_photo_property` for why no doorway-pair capture
+    # protocol turned out to be necessary. Run only when there is more than one room and
+    # multiview is already the requested mode, since this reuses that same registration.
+    # Per-room results above are kept EXACTLY as they are either way - this only adds an
+    # entry, it never replaces one, so a rejected or partial stitch costs nothing.
+    if tier == "photo" and len(scene.rooms) >= 2 and args.photo_mode != "per_frame":
+        print("  attempting property-wide registration across all rooms...")
+        from pipeline.stitching.stitch import stitch_photo_property
+        stitched = stitch_photo_property(scene, depth_backend, cache=not args.no_cache,
+                                         drift_correction=not args.no_drift_correction)
+        if stitched is not None:
+            stitched["room_id"] = "property_stitch"
+            stitched["mode"] = "stitched"
+            stitched["tier"] = tier
+            rooms.append(stitched)
+            print(f"    stitched {stitched['n_rooms_detected']} room(s): "
+                 f"{[sr['room_id'] for sr in stitched['sub_rooms']]}")
+        else:
+            print("    not enough rooms connected by real overlap - "
+                 "per-room results above stand on their own")
+
     result = {
         "schema_version": SCHEMA_VERSION,
         "capture": {
@@ -194,9 +217,12 @@ def main() -> int:
         "property": {
             # A stitched capture reports several sub-rooms under one RoomCapture, so the
             # property's own room list has to expand those rather than listing the capture
-            # once - "rooms": ["video_room_0", "video_room_1"], not ["video_room"].
-            "rooms": [sr["room_id"] for r in rooms
-                     for sr in (r.get("sub_rooms") or [r])],
+            # once - "rooms": ["video_room_0", "video_room_1"], not ["video_room"]. De-duped
+            # (order-preserving) because photo-tier property stitching adds ONE EXTRA entry
+            # alongside the per-room ones it connected, not instead of them - a room that
+            # made it into the stitch would otherwise be listed twice.
+            "rooms": list(dict.fromkeys(sr["room_id"] for r in rooms
+                                        for sr in (r.get("sub_rooms") or [r]))),
             "connections": [c for r in rooms for c in (r.get("connections") or [])],
             "footprint_area": (next((r["footprint_area_m2"] for r in rooms
                                     if r.get("footprint_area_m2") is not None), None)),

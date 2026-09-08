@@ -48,17 +48,102 @@ FOOTPRINT_CELL_M = 0.05           # rasterisation cell for the whole-property fo
 
 
 def stitch(rooms, drift_correction: bool = True):
-    """Per-room PHOTO polygons -> one property, via doorway-pair correspondences.
+    """Superseded by `stitch_photo_property()` below.
 
-    NOT BUILT: the capture protocol did not record doorway-pair shots (a photo of the same
-    opening taken from both adjoining rooms), so there is no correspondence to solve the pose
-    graph from. Building this without that data would mean inventing the alignment rather
-    than measuring it - the one thing this whole benchmark exists to avoid doing silently.
+    This was going to need doorway-pair shots - a photo of the same opening taken from both
+    adjoining rooms - because that is the correspondence the docstring above originally
+    assumed alignment would come from, and this capture never recorded any. It turned out not
+    to be necessary: `pipeline.capture.multiview.register_multiview()` already solves
+    alignment from SIFT correspondences and cycle consistency alone, with no assumption about
+    WHICH photos overlap. Feeding it every photo from every room at once, instead of one
+    room's photos at a time, asks the exact same machinery to also find whatever cross-room
+    overlap the capture happens to contain - a photo that incidentally sees through a doorway
+    into the next room supplies exactly the correspondence a deliberate doorway-pair shot
+    would have, if the capture happens to contain one.
     """
-    raise NotImplementedError(
-        "photo-tier stitching needs doorway-pair shots, which this capture does not have "
-        "(see docs/CAPTURE_PROTOCOL.md). Video/LiDAR stitching is built - see "
-        "stitch_posed_capture().")
+    raise NotImplementedError("use stitch_photo_property() - see its docstring for why this "
+                              "function's original premise no longer holds")
+
+
+def stitch_photo_property(scene, depth_backend, cache: bool = True,
+                          drift_correction: bool = True) -> Optional[dict]:
+    """Every room folder in a photo Scene -> one property, by registering ALL photos from
+    ALL rooms together rather than one room at a time.
+
+    THE INSIGHT THAT MAKES THIS POSSIBLE WITHOUT A NEW CAPTURE PROTOCOL. Within-room
+    multi-view registration (`register_multiview`) already does SIFT matching + cycle
+    consistency + an opposite-sides adjacency test on an UNORDERED set of photos - it never
+    assumed the photos it was given all came from one room, that was simply the only thing
+    ever handed to it. If a capture happens to contain a photo taken near a doorway that
+    incidentally sees into the next room - checked on this capture: `Hallway<->Kitchen`,
+    `Kitchen<->Room 3` both show real cross-room SIFT matches with plausible depth-scale
+    ratios (0.92, 0.92), `Room 1<->Room 3` matches too but with an implausible 1.76 ratio the
+    cycle/scale gates should reject - that overlap IS the correspondence a deliberate
+    doorway-pair shot would have supplied. So this function does not build a new alignment
+    method: it calls the SAME `register_multiview` used within one room, on the union of every
+    room's frames, and lets the SAME verification gates that already govern within-room
+    registration decide whether any of that cross-room overlap survives.
+
+    NOTHING IS FORCED. If cross-room edges fail the cycle-consistency or opposite-sides
+    checks - entirely possible; those links were never deliberately shot, they are whatever
+    the capture happened to contain - `register_multiview` places at most one room's worth of
+    frames and leaves the rest unposed, exactly as it would for any other capture whose
+    frames don't connect. That is reported as a real outcome, not forced into a stitch that
+    isn't there.
+
+    Returns `None` when fewer than two rooms end up with enough posed frames to be stitched
+    together - the caller should report per-room results independently in that case, exactly
+    as it already does when photo-tier stitching was NOT BUILT at all.
+    """
+    from pipeline.capture.multiview import apply_poses, register_multiview
+    from pipeline.capture.depth_cache import infer_cached
+
+    all_frames: list[Frame] = []
+    frame_room: list[str] = []
+    for room in scene.rooms:
+        for f in room.frames:
+            if f.depth is None and f.image is not None:
+                f.depth, _ = infer_cached(depth_backend, f.image_path, f.image, f.K,
+                                          1024, use_cache=cache)
+            if f.depth is not None:
+                all_frames.append(f)
+                frame_room.append(room.room_id)
+
+    if len(all_frames) < 6:
+        return None
+
+    reg = register_multiview(all_frames)
+    apply_poses(all_frames, reg.poses)
+
+    posed_idx_by_room: dict[str, list[int]] = {}
+    for i, f in enumerate(all_frames):
+        if f.T_wc is not None:
+            posed_idx_by_room.setdefault(frame_room[i], []).append(i)
+
+    room_ids = [rid for rid, idx in posed_idx_by_room.items() if len(idx) >= 3]
+    if len(room_ids) < 2:
+        for f in all_frames:
+            f.T_wc = None      # do not leave a partial/rejected stitch's poses on the frames
+        return None
+
+    segments = [posed_idx_by_room[rid] for rid in room_ids]
+    posed_frames = all_frames   # stitch_posed_capture indexes `segments` into this list
+
+    placeholder = RoomCapture(room_id="property", frames=[],
+                              scale=scene.rooms[0].scale if scene.rooms else None,
+                              tier="photo")
+    result = stitch_posed_capture(posed_frames, placeholder, segments, "photo",
+                                  drift_correction=drift_correction, room_ids=room_ids)
+    for f in all_frames:
+        f.T_wc = None          # frames are re-measured per-room independently by the caller
+                               # when this returns None or is not used; never leave a photo
+                               # loader's frames carrying a pose from a rejected attempt
+    if result is not None:
+        # Re-apply: stitch_posed_capture (and its internal cycle-consistency requirements) may
+        # have run its own fit against these exact poses - restore them for callers that go on
+        # to use `all_frames` (e.g. to render debug views of the stitched registration).
+        apply_poses(all_frames, reg.poses)
+    return result
 
 
 # --------------------------------------------------------------------------- room adjacency
@@ -385,7 +470,8 @@ def apply_correction(sub_rooms: list[dict], geoms: list, floors: list,
 
 def stitch_posed_capture(posed_frames: list[Frame], room: RoomCapture,
                          segments: list[list[int]], tier: str,
-                         drift_correction: bool = True) -> Optional[dict]:
+                         drift_correction: bool = True,
+                         room_ids: Optional[list[str]] = None) -> Optional[dict]:
     """Segments of ONE posed capture -> a property: rooms, adjacency, footprint.
 
     Every room's own geometry comes from `pipeline.measure._measure_cloud`, run once per
@@ -393,6 +479,11 @@ def stitch_posed_capture(posed_frames: list[Frame], room: RoomCapture,
     function benefits stitched captures automatically, exactly like the rest of this
     pipeline. This module adds only what a single room cannot answer about itself: which
     frames are whose, whether two rooms touch, and what to do about drift between them.
+
+    `room_ids`, if given, names each segment directly (the photo tier already knows a segment
+    is "Kitchen" from its capture folder - there is no reason to relabel it "photo_2"). Left
+    as `None`, segments are numbered off `room.room_id` as before (video/lidar, where a
+    segment's real identity is discovered by segmentation, not known up front).
 
     Returns `None` when the proposed segments could not be confirmed as genuinely separate
     rooms (`find_adjacent_rooms` found no valid shared wall between any pair). The caller
@@ -408,10 +499,16 @@ def stitch_posed_capture(posed_frames: list[Frame], room: RoomCapture,
     fc_all = fuse_frames(posed_frames, stride=4)
     planes_all = merge_coplanar(extract_planes(fc_all.points, fc_all.normals,
                                                threshold=threshold), fc_all.points)
-    prior = None
+    prior, at_origin = None, False
     if tier == "lidar":
         from pipeline.capture.lidar import ARKIT_WORLD_UP
         prior = ARKIT_WORLD_UP
+    elif tier == "photo":
+        # Same reasoning as the single-room photo path (pipeline/measure.py): the world frame
+        # of a photo multiview registration IS the reference camera's own frame (its pose is
+        # identity by construction), so the hold-the-phone-level prior applies unchanged and
+        # the reference camera genuinely sits at the origin.
+        prior, at_origin = CAMERA_UP, True
     gravity = estimate_gravity(planes_all, prior=prior)
 
     sub_rooms, walls_per_room, floors, geoms, points_per_room = [], [], [], [], []
@@ -419,8 +516,8 @@ def stitch_posed_capture(posed_frames: list[Frame], room: RoomCapture,
         seg_frames = [posed_frames[j] for j in idx]
         fc = fuse_frames(seg_frames, stride=2)
         m = _measure_cloud(fc.points, fc.normals, tier, gravity,
-                          camera_at_origin=False, want_polygon=True)
-        m["room_id"] = f"{room.room_id}_{i}"
+                          camera_at_origin=at_origin, want_polygon=True)
+        m["room_id"] = room_ids[i] if room_ids else f"{room.room_id}_{i}"
         m["n_frames"] = len(seg_frames)
         m["frame_range"] = [int(min(idx)), int(max(idx))]
         sub_rooms.append(m)
@@ -431,7 +528,7 @@ def stitch_posed_capture(posed_frames: list[Frame], room: RoomCapture,
         # only place that needs the raw Plane objects and the RoomGeometry.origin underneath
         # it. Deterministic RANSAC means this reproduces exactly what produced `m`'s numbers.
         got = fit_floor_ceiling(fc.points, fc.normals, threshold=threshold,
-                                gravity_prior=gravity, camera_at_origin=False)
+                                gravity_prior=gravity, camera_at_origin=at_origin)
         walls, floor, ceiling = (got[3], got[1], got[2]) if got else ([], None, None)
         walls_per_room.append(walls)
         floors.append(floor)

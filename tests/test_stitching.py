@@ -2,16 +2,20 @@
 
 Run: python tests/test_stitching.py     (no pytest dependency needed)
 
-THE HONEST LIMIT OF THIS FILE. The team's LiDAR capture's raw file is no longer on disk to
-re-check, so its status is unknown. `benchmark/raw/video/IMG_0460.MOV`, checked directly by
+THE HONEST LIMIT OF THIS FILE. `benchmark/raw/video/IMG_0460.MOV`, checked directly by
 extracting and viewing frames while writing this suite, turns out to be a GENUINE multi-room
 walkthrough (a cluttered living area, then a kitchen through a doorway) - not the single room
-its directory's generic README implied. So there IS one real multi-room result in this repo
-(`out_video_reloc2/result.json` from that investigation), but it was not built with ground
-truth in mind and is not a substitute for a proper re-shoot with a tape measure. Stitching is
-therefore still validated here primarily against synthetic ground truth with known
-dimensions, exactly as `tests/test_geometry.py` did for the single-room pipeline before any
-real capture existed.
+its directory's generic README implied. The team's LiDAR capture (found later, outside the
+repo, at `~/Downloads/single_scan_with_ceiling`) is real too, and re-running it through the
+CURRENT pipeline is itself a finding: density-based segmentation splits it into 9 sub-rooms
+with wildly inconsistent ceiling heights (1.79-3.08 m, a 1.3 m spread) - substantial clusters,
+not noise-level slivers (5-88 frames each), but the ceiling-height spread is exactly the
+signature of the bed-as-floor failure recurring across sub-regions of one large or complex
+space, not 9 verified real rooms. Neither real capture was built with ground truth for this
+specific measurement in mind, so neither is a substitute for a proper re-shoot with a tape
+measure. Stitching is therefore still validated here primarily against synthetic ground
+truth with known dimensions, exactly as `tests/test_geometry.py` did for the single-room
+pipeline before any real capture existed.
 
 Case 1 regresses a REAL RISK, found while investigating that same video result: a same-room
 duplicate (two lingering spots in one room) can independently fit the same physical wall
@@ -27,6 +31,7 @@ from __future__ import annotations
 import os
 import sys
 import warnings
+from typing import Optional
 
 import numpy as np
 
@@ -110,14 +115,22 @@ def _render_depth(eye: np.ndarray, T_wc: np.ndarray, box_lo: np.ndarray, box_hi:
 
 
 def _room_frames(box_lo, box_hi, eyes: list[np.ndarray], targets: list[np.ndarray],
-                 room_id: str, tag: str) -> list[Frame]:
+                 room_id: str, tag: str, set_pose: bool = True,
+                 image: Optional[np.ndarray] = None) -> list[Frame]:
+    """`set_pose=False` and a real `image` together are what a PHOTO-tier synthetic frame
+    needs: real depth (for measurement, once registered) but no pose (photo arrives unposed
+    by design) and real texture (so `register_multiview`'s SIFT matching has something to
+    find - the video/lidar tests' flat black placeholder image is fine when poses are given
+    up front, useless when registration has to discover them)."""
     K = _K()
     frames = []
     for e, t in zip(eyes, targets):
         T = _look_at_pose(e, t)
         depth = _render_depth(e, T, box_lo, box_hi, K)
-        frames.append(Frame(image_path=f"{tag}_{len(frames)}.png", K=K, T_wc=T, depth=depth,
-                            image=np.zeros((HEIGHT_PX, WIDTH_PX, 3), np.uint8)))
+        frames.append(Frame(image_path=f"{tag}_{len(frames)}.png", K=K,
+                            T_wc=T if set_pose else None, depth=depth,
+                            image=image if image is not None
+                            else np.zeros((HEIGHT_PX, WIDTH_PX, 3), np.uint8)))
     return frames
 
 
@@ -528,6 +541,54 @@ def test_reidentify_rooms_does_not_merge_adjacent_rooms_sharing_a_wall_line():
                                      [np.array([2.0, 1.5, 1.35]), np.array([5.75, 1.5, 1.35])])
     check("two different rooms sharing a wall LINE stay separate", len(merged) == 2,
           f"got {len(merged)} group(s), owner={owner}")
+
+
+# --------------------------------------------------------- Case 3: photo-tier stitching
+
+def test_cross_room_edge_accepted_when_content_is_genuinely_shared():
+    """The core claim `stitch_photo_property` is built on, checked directly at the edge
+    level rather than through the full pipeline: TWO PHOTOS FROM DIFFERENT ROOMS, WITH REAL
+    SHARED CONTENT, MUST SURVIVE THE SAME VERIFICATION GATES A WITHIN-ROOM PAIR WOULD.
+
+    Run on the real capture (`benchmark/raw/photo`, 5 rooms, 28 photos) elsewhere and
+    reported as a genuine, honest negative result: only 6 of 28 frames ever got posed, all in
+    one room, and every cross-room edge was correctly REJECTED - implausible camera height, or
+    a depth-scale ratio outside sanity - because none of that overlap was ever deliberately
+    shot. That result proves the gates reject bad matches; it does not, on its own, prove they
+    would ACCEPT a good one, since nothing in it ever presented one.
+
+    This constructs a good one directly: two frames in different rooms, given IDENTICAL image
+    content - standing in for two photos that happen to see the same real doorway view - each
+    with its own room's real depth. `match_pair` finds the same correspondence within-room
+    pairs do (verified: 20+ inliers, sub-cm residual); this is the exact input
+    `find_adjacent_rooms`'s opposite-sides test and the cycle/scale gates were built to accept.
+
+    A full end-to-end `stitch_photo_property` run needs each room's OWN multi-frame trajectory
+    to ALSO register reliably, which needs view-dependent parallax this flat-texture
+    generator does not model - a rendering limitation of this test file, not a claim about
+    the pipeline, and out of scope for what this specific test is checking.
+    """
+    from pipeline.capture.register import match_pair, _features
+
+    box_a = (np.array([0, 0, 0]), np.array([4.0, 3.0, 2.7]))
+    box_b = (np.array([4.0, 0, 0]), np.array([7.5, 3.0, 2.7]))
+    tex_shared = _room_texture(13)
+
+    door_a = _room_frames(*box_a, [np.array([3.7, 1.5, 1.4])], [np.array([4.0, 1.5, 1.4])],
+                          "A", "propA_door", set_pose=False, image=tex_shared)[0]
+    door_b = _room_frames(*box_b, [np.array([4.3, 1.5, 1.4])], [np.array([4.0, 1.5, 1.4])],
+                          "B", "propB_door", set_pose=False, image=tex_shared)[0]
+
+    frames = [door_a, door_b]
+    feats = [_features(f) for f in frames]
+    pm = match_pair(frames, 0, 1, feats, np.random.default_rng(0))
+    check("shared content between two different rooms produces a usable 3D-3D match",
+          pm.ok, f"n_matches={pm.n_matches} n_inliers={pm.n_inliers}")
+    if pm.ok:
+        check("the fitted transform is a plausible rigid alignment (residual < 10 cm)",
+              pm.residual_m < 0.10, f"residual={pm.residual_m * 100:.1f} cm")
+        check("depth-scale ratio between the two rooms' independent depth is sane",
+              0.7 < pm.scale < 1.4, f"scale={pm.scale:.3f}")
 
 
 if __name__ == "__main__":
