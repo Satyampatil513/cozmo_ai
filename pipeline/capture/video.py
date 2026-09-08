@@ -75,6 +75,25 @@ def sample_frames(path: str, every_n: int = DEFAULT_EVERY_N,
     decoding straight through and discarding unwanted frames does the same job in a fraction
     of that, because the decoder is doing the same work either way.
 
+    TWO REAL BUGS FIXED HERE, FOUND ON A 190s CLIP RATHER THAN HYPOTHESISED.
+
+    First: `cap.read()` was called on EVERY raw frame, candidate or not - a full decode plus a
+    fresh ~6 MB BGR buffer allocation, 11000+ times over, before this function had even
+    decided which frames it wanted. On a memory-constrained machine that crashed outright:
+    "Failed to allocate 6220800 bytes" mid-decode, that number being exactly one
+    1080x1920x3 frame. Fixed by `cap.grab()` (advances the decoder, does not decode or
+    allocate a full frame) for every frame that is not a wanted index, and the expensive
+    `cap.retrieve()` only for the ones that are.
+
+    Second, and the reason coverage silently stopped partway through a long clip regardless
+    of `--max-frames`: candidate indices were only ever taken from the START of the file, in
+    order, until enough had been collected. A 190s clip capped at 60 kept frames covered only
+    its first ~120s - `max_frames` controlled HOW MANY frames were kept, never WHERE FROM.
+    Fixed by choosing candidate indices evenly spread across the WHOLE duration up front, so
+    raising or lowering `max_frames` changes density, never which portion of the walk is
+    represented - a room near the end of a long walk is no longer invisible to segmentation
+    by construction.
+
     Blur is judged against this clip's own distribution. A handheld walkthrough has bursts of
     fast rotation where frames smear, and a blurred keyframe does not fail loudly: it yields
     few feature matches, a poor PnP pose, and a kink in the trajectory that propagates through
@@ -93,23 +112,41 @@ def sample_frames(path: str, every_n: int = DEFAULT_EVERY_N,
     }
     meta["duration_s"] = meta["n_frames"] / meta["fps"] if meta["fps"] else 0.0
 
+    # Candidate indices, spread across the ENTIRE file before a single frame is decoded - the
+    # continuity fix. `every_n` first gives the natural spacing (walking pace, not file
+    # length); if that would produce more candidates than needed, they are THINNED evenly
+    # across the whole range rather than truncated from the end, so density drops uniformly
+    # instead of coverage collapsing onto the first portion of the walk.
+    all_idx = list(range(0, max(1, meta["n_frames"]), every_n)) or [0]
+    want_n = max_frames * 2 if max_frames else len(all_idx)
+    if len(all_idx) > want_n > 0:
+        pick = np.linspace(0, len(all_idx) - 1, want_n).round().astype(int)
+        wanted = sorted(set(all_idx[i] for i in pick))
+    else:
+        wanted = all_idx
+    wanted_set = set(wanted)
+
     cand: list[tuple[int, np.ndarray, float]] = []
     idx = 0
     while True:
+        if idx not in wanted_set:
+            if not cap.grab():
+                break
+            idx += 1
+            continue
         ok, bgr = cap.read()
         if not ok:
             break
-        if idx % every_n == 0:
-            gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-            sharp = _blur(gray)
-            rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-            sc = min(1.0, work_px / max(rgb.shape[:2]))
-            if sc < 1.0:
-                rgb = cv2.resize(rgb, (int(rgb.shape[1] * sc), int(rgb.shape[0] * sc)),
-                                 interpolation=cv2.INTER_AREA)
-            cand.append((idx, rgb, sharp))
-            if max_frames and len(cand) >= max_frames * 2:
-                break
+        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+        sharp = _blur(gray)
+        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+        sc = min(1.0, work_px / max(rgb.shape[:2]))
+        if sc < 1.0:
+            rgb = cv2.resize(rgb, (int(rgb.shape[1] * sc), int(rgb.shape[0] * sc)),
+                             interpolation=cv2.INTER_AREA)
+        cand.append((idx, rgb, sharp))
+        if idx >= wanted[-1]:
+            break
         idx += 1
     cap.release()
 
@@ -120,8 +157,13 @@ def sample_frames(path: str, every_n: int = DEFAULT_EVERY_N,
     sharps = np.array([c[2] for c in cand])
     thresh = max(BLUR_ABSOLUTE_FLOOR, float(np.percentile(sharps, BLUR_PERCENTILE)))
     kept = [(i, rgb) for i, rgb, s_ in cand if not skip_blurred or s_ >= thresh]
-    if max_frames:
-        kept = kept[:max_frames]
+    if max_frames and len(kept) > max_frames:
+        # Thinned evenly across the surviving candidates, not truncated from the front - the
+        # same continuity fix applied a second time, because blur filtering can itself remove
+        # frames unevenly (a shaky stretch mid-walk drops more than a steady one) and a plain
+        # `[:max_frames]` here would collapse coverage back onto the start exactly as before.
+        pick = np.linspace(0, len(kept) - 1, max_frames).round().astype(int)
+        kept = [kept[i] for i in sorted(set(pick))]
 
     meta["sampled"] = len(kept)
     meta["skipped_blurred"] = len(cand) - len(kept)
