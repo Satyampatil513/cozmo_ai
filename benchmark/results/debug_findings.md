@@ -1,4 +1,4 @@
-# What the diagnostic overlays found
+ # What the diagnostic overlays found
 
 Regenerate: `python run.py benchmark/raw/photo --tier photo --out out_dbg --debug`
 Sheets land in `out_dbg/debug/`, one per frame: RGB, depth, fitted planes, classification.

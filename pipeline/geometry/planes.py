@@ -22,8 +22,14 @@ from dataclasses import dataclass, field
 import numpy as np
 
 # A plane is kept if it explains at least this fraction of the points it was fitted from.
-MIN_INLIER_FRACTION = 0.02
-MIN_INLIER_COUNT = 200
+#
+# 0.005, not 0.02. The larger value was calibrated on single-room clouds, where a wall is a
+# big share of everything visible. On a whole-property scan - the team's own samples walk 50
+# to 97 metres through a flat - any one wall is a small fraction of the total, and 2% rejected
+# every plane in all three samples, reporting "no planes" on a perfectly good 200k-point
+# cloud. The absolute floor is what actually guards against noise planes.
+MIN_INLIER_FRACTION = 0.005
+MIN_INLIER_COUNT = 400
 
 # Angular tolerances, degrees.
 AXIS_TOL_DEG = 15.0          # how far from gravity a plane can be and still count horizontal
@@ -101,8 +107,16 @@ def ransac_plane(
     cos_tol = np.cos(np.radians(normal_tol_deg))
 
     best_mask, best_count = None, 0
-    for _ in range(iters):
-        if normals is not None:
+    for it in range(iters):
+        # With normals, alternate between two hypothesis generators rather than trusting
+        # either. A single point's normal defines a plane from one sample, which is powerful
+        # when normals are clean - but they are computed by central differences, and on a
+        # coarse depth grid (the team's captures are 256x192) that estimate is noisy enough
+        # that it measurably underperforms: 3097 inliers against 11532 for a plain 3-point
+        # fit on the same cloud. Running both and keeping whichever explains more points costs
+        # nothing and is robust to either failing.
+        use_normal = normals is not None and (it % 2 == 0)
+        if use_normal:
             i = int(rng.integers(n_pts))
             n = normals[i]
             nn = np.linalg.norm(n)
@@ -316,6 +330,20 @@ CAM_HEIGHT_PRIOR_M = (1.45, 0.45)   # handheld camera above the floor: centre, w
 MIN_HEADROOM_M = 0.30               # ceiling must be meaningfully above the camera
 BOUND_TOL_M = 0.08                  # slack when asking "is anything outside this pair"
 
+# How much mass outside a candidate pair counts as "a lot". A floor should have essentially
+# NOTHING below it, so this is deliberately tiny and the penalty decays exponentially.
+#
+# The linear form (1 - below) that this replaces was far too soft, and it cost us a real
+# measurement. In a fused bedroom the bed carried most of the cloud while genuine floor,
+# visible in only 2 of 6 frames, was about 2% of it - so the bed scored 1 - 0.02 = 0.98 and
+# sailed through the test that exists to catch exactly that.
+#
+# Calibrated, not guessed. At 0.01 the penalty was so steep that four of five real rooms
+# abstained entirely - a correct instinct pushed past the point of usefulness. 0.05 scores 2%
+# of mass below at 0.67, a real penalty that still lets a sound pair through, and leaves the
+# rooms that were passing before still passing.
+BOUND_MASS_TOL = 0.05
+
 
 def _soft(x: float, centre: float, width: float) -> float:
     """Gaussian bump in [0, 1]. Smooth, so an unusual room is penalised, never excluded."""
@@ -410,7 +438,7 @@ def select_floor_ceiling(planes: list[Plane], gravity: np.ndarray, points: np.nd
             if "bounding" in use:
                 below = float(np.mean(hp < height[id(f)] - BOUND_TOL_M))
                 above = float(np.mean(hp > height[id(c)] + BOUND_TOL_M))
-                s_bound = (1.0 - below) * (1.0 - above)
+                s_bound = float(np.exp(-(below + above) / BOUND_MASS_TOL))
             else:
                 s_bound = 1.0
 

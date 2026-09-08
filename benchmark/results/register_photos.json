@@ -1,0 +1,453 @@
+{
+  "ground_truth_ceiling_m": 2.64,
+  "rooms": [
+    {
+      "room": "Hallway",
+      "n_frames": 6,
+      "registered": 2,
+      "reference": 2,
+      "residual_median_cm": 4.53,
+      "residual_p90_cm": 8.59,
+      "per_frame_scale": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.9233
+      ],
+      "pairs": [
+        {
+          "i": 2,
+          "j": 5,
+          "inliers": 25,
+          "pair_scale": 0.9233,
+          "pair_residual_cm": 4.53,
+          "world_residual_median_cm": 4.53
+        }
+      ],
+      "per_frame_ceilings": [
+        2.7192,
+        2.8773,
+        2.8296,
+        2.7238,
+        3.0127,
+        3.0339
+      ],
+      "per_frame_mean": 2.8661,
+      "per_frame_sd": 0.1245,
+      "per_frame_err_pct": 8.56,
+      "posed_frames": 2,
+      "seconds": 22.1
+    },
+    {
+      "room": "Kitchen",
+      "n_frames": 4,
+      "registered": 3,
+      "reference": 1,
+      "residual_median_cm": 1.93,
+      "residual_p90_cm": 4.11,
+      "per_frame_scale": [
+        1.0737,
+        1.0,
+        1.0,
+        1.0503
+      ],
+      "pairs": [
+        {
+          "i": 0,
+          "j": 1,
+          "inliers": 55,
+          "pair_scale": 0.9314,
+          "pair_residual_cm": 1.84,
+          "world_residual_median_cm": 1.97
+        },
+        {
+          "i": 1,
+          "j": 3,
+          "inliers": 25,
+          "pair_scale": 1.0503,
+          "pair_residual_cm": 1.92,
+          "world_residual_median_cm": 1.92
+        }
+      ],
+      "per_frame_ceilings": [
+        2.9554,
+        2.952,
+        2.7233
+      ],
+      "per_frame_mean": 2.8769,
+      "per_frame_sd": 0.1086,
+      "per_frame_err_pct": 8.97,
+      "posed_frames": 3,
+      "fused_points": 45009,
+      "fused": {
+        "score": 0.2092,
+        "n_walls": 6,
+        "ceiling_m": 2.9121,
+        "gravity": [
+          -0.043,
+          -0.992,
+          -0.119
+        ],
+        "spread_cm": 5.4,
+        "wall_pairs": [
+          3.3022,
+          3.2153,
+          2.0058
+        ]
+      },
+      "fused_err_pct": 10.31,
+      "seconds": 34.6
+    },
+    {
+      "room": "Room 1",
+      "n_frames": 6,
+      "registered": 6,
+      "reference": 3,
+      "residual_median_cm": 3.69,
+      "residual_p90_cm": 20.58,
+      "per_frame_scale": [
+        1.0694,
+        1.0526,
+        0.9149,
+        1.0,
+        1.0621,
+        0.9877
+      ],
+      "pairs": [
+        {
+          "i": 0,
+          "j": 1,
+          "inliers": 15,
+          "pair_scale": 0.9843,
+          "pair_residual_cm": 3.24,
+          "world_residual_median_cm": 3.46
+        },
+        {
+          "i": 0,
+          "j": 3,
+          "inliers": 12,
+          "pair_scale": 1.0655,
+          "pair_residual_cm": 4.84,
+          "world_residual_median_cm": 159.66
+        },
+        {
+          "i": 0,
+          "j": 4,
+          "inliers": 10,
+          "pair_scale": 1.4018,
+          "pair_residual_cm": 2.33,
+          "world_residual_median_cm": 157.23
+        },
+        {
+          "i": 0,
+          "j": 5,
+          "inliers": 18,
+          "pair_scale": 0.9236,
+          "pair_residual_cm": 2.17,
+          "world_residual_median_cm": 2.32
+        },
+        {
+          "i": 1,
+          "j": 3,
+          "inliers": 12,
+          "pair_scale": 0.9806,
+          "pair_residual_cm": 2.86,
+          "world_residual_median_cm": 155.04
+        },
+        {
+          "i": 2,
+          "j": 3,
+          "inliers": 65,
+          "pair_scale": 1.0931,
+          "pair_residual_cm": 5.34,
+          "world_residual_median_cm": 4.89
+        },
+        {
+          "i": 2,
+          "j": 4,
+          "inliers": 60,
+          "pair_scale": 0.9672,
+          "pair_residual_cm": 1.18,
+          "world_residual_median_cm": 7.69
+        },
+        {
+          "i": 3,
+          "j": 4,
+          "inliers": 185,
+          "pair_scale": 1.0621,
+          "pair_residual_cm": 2.8,
+          "world_residual_median_cm": 2.8
+        },
+        {
+          "i": 3,
+          "j": 5,
+          "inliers": 79,
+          "pair_scale": 0.9877,
+          "pair_residual_cm": 2.89,
+          "world_residual_median_cm": 2.89
+        },
+        {
+          "i": 4,
+          "j": 5,
+          "inliers": 10,
+          "pair_scale": 0.9306,
+          "pair_residual_cm": 4.43,
+          "world_residual_median_cm": 37.41
+        }
+      ],
+      "per_frame_ceilings": [
+        2.556,
+        2.9044,
+        2.9005,
+        2.5087,
+        2.6639
+      ],
+      "per_frame_mean": 2.7067,
+      "per_frame_sd": 0.1676,
+      "per_frame_err_pct": 2.53,
+      "posed_frames": 6,
+      "fused_points": 86318,
+      "fused": {
+        "score": 0.0567,
+        "n_walls": 5,
+        "ceiling_m": 2.7261,
+        "gravity": [
+          -0.061,
+          -0.998,
+          0.008
+        ],
+        "spread_cm": 38.5,
+        "wall_pairs": [
+          3.5075,
+          3.0932
+        ]
+      },
+      "fused_err_pct": 3.26,
+      "seconds": 35.3
+    },
+    {
+      "room": "Room 2",
+      "n_frames": 6,
+      "registered": 6,
+      "reference": 3,
+      "residual_median_cm": 3.69,
+      "residual_p90_cm": 8.27,
+      "per_frame_scale": [
+        1.0142,
+        1.0203,
+        1.0597,
+        1.0,
+        0.9855,
+        0.9687
+      ],
+      "pairs": [
+        {
+          "i": 0,
+          "j": 1,
+          "inliers": 146,
+          "pair_scale": 1.006,
+          "pair_residual_cm": 2.62,
+          "world_residual_median_cm": 2.66
+        },
+        {
+          "i": 0,
+          "j": 3,
+          "inliers": 22,
+          "pair_scale": 1.0208,
+          "pair_residual_cm": 3.55,
+          "world_residual_median_cm": 4.34
+        },
+        {
+          "i": 0,
+          "j": 5,
+          "inliers": 25,
+          "pair_scale": 0.9552,
+          "pair_residual_cm": 4.02,
+          "world_residual_median_cm": 4.08
+        },
+        {
+          "i": 1,
+          "j": 4,
+          "inliers": 24,
+          "pair_scale": 0.9878,
+          "pair_residual_cm": 3.99,
+          "world_residual_median_cm": 203.6
+        },
+        {
+          "i": 2,
+          "j": 3,
+          "inliers": 17,
+          "pair_scale": 0.9437,
+          "pair_residual_cm": 4.98,
+          "world_residual_median_cm": 5.28
+        },
+        {
+          "i": 3,
+          "j": 4,
+          "inliers": 10,
+          "pair_scale": 0.9855,
+          "pair_residual_cm": 4.56,
+          "world_residual_median_cm": 4.56
+        },
+        {
+          "i": 3,
+          "j": 5,
+          "inliers": 280,
+          "pair_scale": 0.9687,
+          "pair_residual_cm": 3.76,
+          "world_residual_median_cm": 3.76
+        }
+      ],
+      "per_frame_ceilings": [
+        2.2876,
+        2.9892,
+        2.2792,
+        2.26,
+        2.3855
+      ],
+      "per_frame_mean": 2.4403,
+      "per_frame_sd": 0.2779,
+      "per_frame_err_pct": -7.56,
+      "posed_frames": 6,
+      "fused_points": 88691,
+      "fused": {
+        "score": 0.0132,
+        "n_walls": 5,
+        "ceiling_m": null,
+        "gravity": [
+          0.001,
+          -1.0,
+          -0.012
+        ],
+        "wall_pairs": [
+          3.2482,
+          3.1376,
+          3.8061
+        ]
+      },
+      "seconds": 25.3
+    },
+    {
+      "room": "Room 3",
+      "n_frames": 6,
+      "registered": 6,
+      "reference": 3,
+      "residual_median_cm": 3.72,
+      "residual_p90_cm": 51.01,
+      "per_frame_scale": [
+        0.9397,
+        0.9558,
+        0.8522,
+        1.0,
+        0.9629,
+        0.9405
+      ],
+      "pairs": [
+        {
+          "i": 0,
+          "j": 2,
+          "inliers": 33,
+          "pair_scale": 0.9069,
+          "pair_residual_cm": 0.81,
+          "world_residual_median_cm": 0.76
+        },
+        {
+          "i": 0,
+          "j": 4,
+          "inliers": 29,
+          "pair_scale": 0.7362,
+          "pair_residual_cm": 0.48,
+          "world_residual_median_cm": 50.05
+        },
+        {
+          "i": 1,
+          "j": 2,
+          "inliers": 17,
+          "pair_scale": 0.8916,
+          "pair_residual_cm": 3.88,
+          "world_residual_median_cm": 3.71
+        },
+        {
+          "i": 1,
+          "j": 3,
+          "inliers": 34,
+          "pair_scale": 1.0463,
+          "pair_residual_cm": 0.97,
+          "world_residual_median_cm": 0.93
+        },
+        {
+          "i": 1,
+          "j": 4,
+          "inliers": 25,
+          "pair_scale": 1.0075,
+          "pair_residual_cm": 2.67,
+          "world_residual_median_cm": 2.55
+        },
+        {
+          "i": 1,
+          "j": 5,
+          "inliers": 10,
+          "pair_scale": 1.6337,
+          "pair_residual_cm": 3.28,
+          "world_residual_median_cm": 28.15
+        },
+        {
+          "i": 2,
+          "j": 3,
+          "inliers": 13,
+          "pair_scale": 1.0048,
+          "pair_residual_cm": 3.76,
+          "world_residual_median_cm": 77.88
+        },
+        {
+          "i": 2,
+          "j": 4,
+          "inliers": 106,
+          "pair_scale": 1.0615,
+          "pair_residual_cm": 4.12,
+          "world_residual_median_cm": 46.34
+        },
+        {
+          "i": 3,
+          "j": 5,
+          "inliers": 192,
+          "pair_scale": 0.9405,
+          "pair_residual_cm": 2.58,
+          "world_residual_median_cm": 2.58
+        }
+      ],
+      "per_frame_ceilings": [
+        2.136,
+        3.1378,
+        2.3339,
+        2.9057,
+        2.4566
+      ],
+      "per_frame_mean": 2.594,
+      "per_frame_sd": 0.3713,
+      "per_frame_err_pct": -1.74,
+      "posed_frames": 6,
+      "fused_points": 91532,
+      "fused": {
+        "score": 0.507,
+        "n_walls": 7,
+        "ceiling_m": 2.8896,
+        "gravity": [
+          0.074,
+          -0.995,
+          -0.066
+        ],
+        "spread_cm": 13.9,
+        "wall_pairs": [
+          3.3243,
+          3.1705,
+          2.8025
+        ]
+      },
+      "fused_err_pct": 9.45,
+      "seconds": 36.6
+    }
+  ]
+}

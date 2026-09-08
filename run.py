@@ -38,7 +38,28 @@ def git_commit() -> str:
         return "unknown"
 
 
+def _is_stray(path: str) -> bool:
+    """Stray Scanner capture: a directory (or zip) holding camera_matrix.csv + depth/."""
+    if path.lower().endswith(".zip"):
+        try:
+            import zipfile
+            with zipfile.ZipFile(path) as z:
+                names = z.namelist()
+            return any(n.endswith("camera_matrix.csv") for n in names)
+        except Exception:
+            return False
+    if not os.path.isdir(path):
+        return False
+    for root in (path, *(os.path.join(path, d) for d in os.listdir(path)
+                         if os.path.isdir(os.path.join(path, d)))):
+        if os.path.isfile(os.path.join(root, "camera_matrix.csv")):
+            return True
+    return False
+
+
 def detect_tier(path: str) -> str:
+    if _is_stray(path):
+        return "lidar"
     if os.path.isfile(path):
         ext = os.path.splitext(path)[1].lower()
         if ext == ".r3d":
@@ -74,6 +95,11 @@ class _NpEncoder(json.JSONEncoder):
 def load_scene(path: str, tier: str, args, depth_backend):
     """Dispatch to the tier's loader. The only place the tiers differ."""
     if tier == "lidar":
+        # Two LiDAR container formats in the wild, and they are not interchangeable: their
+        # depth encodings AND their pose conventions differ. Dispatch on content.
+        if _is_stray(path):
+            from pipeline.capture.stray import load as load_stray
+            return load_stray(path, stride=args.lidar_stride), {}
         from pipeline.capture.lidar import load as load_r3d
         if os.path.isdir(path):
             cands = [os.path.join(path, f) for f in sorted(os.listdir(path))
