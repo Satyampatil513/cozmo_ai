@@ -400,9 +400,11 @@ Not tested: multi-room stitching, damage detection, rendered plans — none are 
 
 ## Blocked on missing capture data
 
-1. **Same rooms at all three tiers.** The `.r3d` is a different property from the photos and
-   video, so no cross-tier comparison on identical rooms is possible. This is a benchmark
-   requirement, not a nicety.
+1. ~~**Same rooms at all three tiers.**~~ **WAIVED by the team.** The `.r3d` is a different
+   property from the photos and video. No longer counted as a gap - but the consequence still
+   holds and is not waived by it: every cross-tier number here compares different rooms, so a
+   tier-to-tier difference cannot be separated from a room-to-room one. Per-tier results
+   against each capture's own truth stand; the ranking between tiers does not.
 2. **Repeatability gate.** Needs one room captured *twice*. The report currently shows
    frame-to-frame spread and says explicitly that this is not the same thing.
 3. **Wall/opening ground truth for the 3BHK.** Only ceiling height (2.64 m) is measured.
