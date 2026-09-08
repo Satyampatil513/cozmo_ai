@@ -61,7 +61,7 @@ def select_room_walls(walls: list[Plane], points: np.ndarray, gravity: np.ndarra
     Orienting each kept normal inward also gives the rest of the pipeline a consistent
     convention, which the raw SVD normals do not have.
     """
-    if not walls:
+    if not walls or len(points) == 0:
         return []
     g = gravity / np.linalg.norm(gravity)
     centroid = points.mean(axis=0)
@@ -74,7 +74,8 @@ def select_room_walls(walls: list[Plane], points: np.ndarray, gravity: np.ndarra
     # points spill past it - with sigma = 5 cm, 16% of every wall's inliers land more than
     # 5 cm behind their own plane - and every genuine wall gets rejected as furniture. The
     # band has to track how noisy the cloud actually is, so it is measured here.
-    resid = np.concatenate([np.abs(points[w.inliers] @ w.normal + w.d) for w in walls])
+    res_parts = [np.abs(points[w.inliers] @ w.normal + w.d) for w in walls if w.inliers.size]
+    resid = np.concatenate(res_parts) if res_parts else np.array([0.02])
     sigma = 1.4826 * float(np.median(resid))          # MAD -> sigma, outlier-robust
     tol = max(BEHIND_TOL_FLOOR_M, BEHIND_TOL_SIGMAS * sigma)
 
@@ -94,7 +95,7 @@ def select_room_walls(walls: list[Plane], points: np.ndarray, gravity: np.ndarra
         if behind > MAX_MASS_BEHIND:
             continue
 
-        if room_h > 1e-6:
+        if room_h > 1e-6 and w.inliers.size:
             wh = points[w.inliers] @ g
             if float(wh.max() - wh.min()) / room_h < MIN_HEIGHT_COVERAGE:
                 continue
@@ -311,3 +312,74 @@ def wall_pair_dimensions(walls: list[Plane], gravity: np.ndarray,
                 "normal_b": np.round(b.normal, 3).tolist(),
             })
     return sorted(out, key=lambda d: -d["support"])
+
+
+# --- corner extraction with accept/reject status ------------------------------------------
+# SCOPE, deliberately narrow. This assumes an ordinary residential room: an approximately
+# planar floor and ceiling, and walls approximately vertical. Staircases, split levels,
+# multi-height ceilings and other exotic layouts are OUT OF SCOPE and are expected to produce
+# poor geometry rather than special handling. Documented as a known limitation.
+CORNER_MIN_ANGLE_DEG = 25.0
+CORNER_MAX_OVERSHOOT_M = 0.8
+
+
+@dataclass
+class CornerCandidate:
+    point: np.ndarray            # 3D, world (or the cloud's frame)
+    wall_a: int
+    wall_b: int
+    accepted: bool
+    reason: str = ""
+
+    def to_json(self) -> dict:
+        return {"point": np.round(self.point, 4).tolist(), "walls": [self.wall_a, self.wall_b],
+                "accepted": bool(self.accepted), "reason": self.reason}
+
+
+def corners_with_status(walls: list[Plane], floor: Plane | None, points: np.ndarray,
+                        gravity: np.ndarray) -> list[CornerCandidate]:
+    """Every wall-wall-floor intersection, kept or rejected, with the reason recorded.
+
+    Returning the rejects is the point. A corner that is visually obvious but absent from the
+    output is either never computed or computed and discarded, and those need different fixes;
+    printing only the survivors makes the two indistinguishable.
+    """
+    out: list[CornerCandidate] = []
+    if floor is None or len(walls) < 2:
+        return out
+    min_cos = np.cos(np.radians(90.0 - CORNER_MIN_ANGLE_DEG))
+
+    for a in range(len(walls)):
+        for b in range(a + 1, len(walls)):
+            wa, wb = walls[a], walls[b]
+            if abs(float(wa.normal @ wb.normal)) > min_cos:
+                out.append(CornerCandidate(np.zeros(3), a, b, False,
+                                           "walls near-parallel (no corner exists)"))
+                continue
+            A = np.stack([wa.normal, wb.normal, floor.normal])
+            if abs(float(np.linalg.det(A))) < 1e-8:
+                out.append(CornerCandidate(np.zeros(3), a, b, False, "degenerate 3-plane system"))
+                continue
+            p = np.linalg.solve(A, -np.array([wa.d, wb.d, floor.d]))
+
+            over = 0.0
+            has_support = True
+            for w in (wa, wb):
+                if w.inliers.size == 0:
+                    # A consensus plane can carry no points from this particular cloud. That
+                    # is not evidence against the corner, so the extent test is skipped and
+                    # the corner is accepted on the planes alone rather than silently dropped.
+                    has_support = False
+                    continue
+                q = points[w.inliers]
+                over = max(over, float(np.max(np.maximum(q.min(axis=0) - p, 0))),
+                           float(np.max(np.maximum(p - q.max(axis=0), 0))))
+            if not has_support:
+                out.append(CornerCandidate(p, a, b, True, "accepted without extent test"))
+                continue
+            if over > CORNER_MAX_OVERSHOOT_M:
+                out.append(CornerCandidate(p, a, b, False,
+                                           f"outside observed wall extent by {over:.2f} m"))
+            else:
+                out.append(CornerCandidate(p, a, b, True, ""))
+    return out

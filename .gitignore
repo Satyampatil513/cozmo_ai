@@ -31,3 +31,8 @@ benchmark/cache/
 out_photo/
 out_video/
 out_lidar/
+out_compare/
+out_diagnose/
+out_register/
+out_stray/
+out_dbg/
