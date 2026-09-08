@@ -107,5 +107,5 @@ between tiers does not.
 | D.0 | Capture sessions executed | benchmark/raw/ | 29 photos / 1 clip / 1 .r3d | DONE - photo and video shot in the 3BHK; .r3d supplied by the team (different property, waived) |
 | D.3 | README, fresh machine to running in 15 min | README.md | doc | PARTIAL |
 | D.4 | Reproduction bundle | docs/REPRODUCTION.md | doc + script | NOT BUILT |
-| D.7 | Technical report, max 6 pages | docs/TECHNICAL_REPORT.md | doc | NOT BUILT |
+| D.7 | Technical report, max 6 pages | docs/TECHNICAL_REPORT.md | doc + 9 stage images | DONE |
 | D.8 | Raw benchmark data | benchmark/raw/ | data | DONE - photo, video and lidar captures committed |
