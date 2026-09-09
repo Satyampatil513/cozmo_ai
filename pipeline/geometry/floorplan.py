@@ -14,8 +14,18 @@ in it. So:
   1. fit ONE floor plane and ONE ceiling plane (the only planes this path trusts),
   2. take every point between them and drop it straight down onto the floor,
   3. rasterise that into an occupancy grid - a cell with a tall stack of points is a wall,
-  4. carve the free space into rooms at doorway pinch-points (2D geometry, NOT camera-path
-     density - the input that runs out exactly when a walk gets hard),
+  4. ROOM CARVING is the wall-line-arrangement method (Ochmann et al., and what
+     point-cloud->floor-plan products use), not camera-path density and not a raw
+     distance-transform watershed (which fragments on furniture):
+       a. extract wall CENTRE-LINES from the raster (Hough), snap them onto a few dominant
+          orientations, and merge the parallel pair that is the two faces of one wall,
+       b. extend every line across the plan - they cut it into an arrangement of FACES,
+       c. LABEL the faces into rooms: start from the arrangement faces and greedily merge
+          any two whose shared edge carries little real wall evidence. This is the graph-cut
+          smoothness term done greedily - "it only costs to put a wall between two faces
+          where a wall was actually seen." A doorway (small gap in an otherwise solid wall)
+          keeps the two rooms apart; an extended line with no wall under it, or a wide
+          opening, does not.
   5. fit a rotated rectangle to each room for length x width, and read each room's own
      ceiling height from the points above its footprint.
 
@@ -44,12 +54,24 @@ CELL_M = 0.04                     # raster resolution
 BAND_MARGIN_M = 0.15             # ignore points within this of the floor or ceiling plane
 WALL_MIN_PCTL = 55              # a cell is "wall" if its point count is >= this percentile
                                 # of occupied-cell counts (wall band only, floor/ceiling out)
-ROOM_CORE_M = 0.75             # a free cell more than this from any wall is inside a room,
-                               # never in a doorway - so a connected patch of such cells is
-                               # one room's core (a clear opening up to ~1.5 m still splits)
-PINCH_MAX_M = 0.85            # if the boundary between two rooms never comes closer than this
-                               # to a wall, it is not a doorway (furniture in open floor) -
-                               # merge the two back into one room
+
+# --- wall-line extraction & regularisation (arrangement family) ---
+LINE_MIN_SUPPORT_M = 0.80      # a wall centre-line needs this much collinear point support
+LINE_MERGE_OFFSET_M = 0.16    # parallel lines closer than this are the two faces of one wall
+LINE_ANGLE_SNAP_DEG = 8.0     # snap a line's angle onto a dominant orientation within this
+LINE_ENDPOINT_PAD_M = 0.30    # a face edge counts as "backed" by a line only within its own
+                               # observed extent plus this pad - stops an extended line from
+                               # inventing a wall in space it was never seen occupying
+
+# --- face labelling (the graph-cut smoothness term, done greedily) ---
+FACE_MERGE_SUPPORT = 0.34     # merge two faces whose shared edge has less real wall evidence
+                               # than this: the line between them is an extension artefact or
+                               # a wide opening, not a room boundary
+WALL_EVIDENCE_CELLS = 1        # a boundary cell is "wall-backed" if a real wall cell (point
+                               # support, not just a drawn line) lies within this many cells
+OUTSIDE_MAX_PTS_PER_CELL = 0.4  # a border-touching face this sparse, with no camera in it,
+                                 # is outside the building, not a room
+
 MIN_ROOM_M2 = 1.5               # smaller than this is an alcove, merged into a neighbour
 CEIL_MIN_M, CEIL_MAX_M = 2.0, 4.2        # a room height outside this is not defended
 CEIL_MIN_COVERAGE = 0.06        # fraction of a room's footprint that must carry ceiling pts
@@ -171,23 +193,6 @@ def _components(mask: np.ndarray) -> tuple[np.ndarray, int]:
     return lab, cur
 
 
-def _erode_distance(mask: np.ndarray, iters: int = 60) -> np.ndarray:
-    """Cheap Euclidean-ish distance-to-boundary in cell units: repeated 4-connected erosion,
-    each surviving cell's distance is the iteration it lasted to. Only used when OpenCV's
-    distanceTransform is unavailable; `iters` caps it at a distance no room core needs."""
-    out = mask.copy()
-    dist = np.zeros(mask.shape, np.float64)
-    for i in range(1, iters + 1):
-        e = out.copy()
-        e[1:, :] &= out[:-1, :]; e[:-1, :] &= out[1:, :]
-        e[:, 1:] &= out[:, :-1]; e[:, :-1] &= out[:, 1:]
-        out = e
-        dist[out] = i
-        if not out.any():
-            break
-    return dist
-
-
 def _dilate(mask: np.ndarray, r: int) -> np.ndarray:
     if r < 1:
         return mask.copy()
@@ -254,6 +259,169 @@ def _room_ceiling(heights: np.ndarray, ceil_uv: np.ndarray, floor_h: float,
     return h, f"histogram peak, {near_h.size} pts, {coverage * 100:.0f}% footprint coverage"
 
 
+def _wall_centre_lines(wall_raw: np.ndarray, cell_m: float) -> list[dict]:
+    """Wall centre-lines from the wall raster (arrangement step a + b).
+
+    Hough segments -> per-segment (angle, perpendicular offset) -> snap angles onto the
+    capture's dominant orientation and its perpendicular where they are close -> cluster by
+    offset so the two faces of one wall become one line. Returns dicts with `angle` (deg),
+    `rho` (cell offset of the infinite line), and `t0,t1` the along-line span where wall
+    support was actually observed (cells), used later to tell a real edge from an extension.
+    """
+    if cv2 is None:
+        return []
+    H, W = wall_raw.shape
+    min_len = max(6, int(LINE_MIN_SUPPORT_M / cell_m))
+    segs = cv2.HoughLinesP(wall_raw.astype(np.uint8) * 255, 1, np.pi / 360.0,
+                           threshold=min_len, minLineLength=min_len,
+                           maxLineGap=int(round(0.35 / cell_m)))
+    if segs is None:
+        return []
+    segs = segs.reshape(-1, 4).astype(float)                 # x1,y1,x2,y2 (col,row)
+    ang = np.degrees(np.arctan2(segs[:, 3] - segs[:, 1], segs[:, 2] - segs[:, 0])) % 180.0
+    length = np.hypot(segs[:, 2] - segs[:, 0], segs[:, 3] - segs[:, 1])
+
+    a0 = float(ang[np.argmax(length)])                        # longest segment sets the grid
+    def _snap(a: float) -> float:
+        for base in (a0, (a0 + 90.0) % 180.0):
+            d = abs((a - base + 90.0) % 180.0 - 90.0)
+            if d <= LINE_ANGLE_SNAP_DEG:
+                return base
+        return a
+    sang = np.array([_snap(a) for a in ang])
+
+    lines: list[dict] = []
+    used = np.zeros(len(segs), bool)
+    merge_off = LINE_MERGE_OFFSET_M / cell_m
+    order = np.argsort(-length)
+    for i in order:
+        if used[i]:
+            continue
+        th = np.radians(sang[i])
+        d = np.array([np.cos(th), np.sin(th)])
+        nrm = np.array([-d[1], d[0]])
+        rho_i = float(nrm @ segs[i, :2])
+        members = [i]
+        for j in order:
+            if used[j] or j == i or abs(sang[j] - sang[i]) > 3.0:
+                continue
+            rho_j = float(nrm @ segs[j, :2])
+            if abs(rho_j - rho_i) <= merge_off:
+                members.append(j)
+        used[members] = True
+        pts = np.vstack([segs[members][:, :2], segs[members][:, 2:]])
+        t = pts @ d
+        rho = float(np.mean([nrm @ p for p in pts]))
+        lines.append({"angle": float(sang[i]), "rho": rho, "d": d, "nrm": nrm,
+                      "t0": float(t.min()), "t1": float(t.max()),
+                      "support": float(sum(length[members]))})
+    return [ln for ln in lines if ln["support"] >= min_len]
+
+
+def _segment_by_arrangement(wall_raw: np.ndarray, wall_dil: np.ndarray, grid: np.ndarray,
+                            interior: np.ndarray, cam_cells: np.ndarray, cell_m: float
+                            ) -> tuple[np.ndarray, int]:
+    """Faces of the wall-line arrangement, labelled into rooms by greedy wall-supported
+    merging (arrangement step c). Returns (room_lab over `interior`, n_rooms)."""
+    H, W = wall_raw.shape
+    lines = _wall_centre_lines(wall_raw, cell_m)
+    if not lines:
+        return interior.astype(np.int32), 1
+
+    # Draw every line across the whole plan: these cuts define the arrangement faces.
+    cut = np.zeros((H, W), np.uint8)
+    diag = float(np.hypot(H, W))
+    for ln in lines:
+        c = ln["rho"] * ln["nrm"]                             # a point on the line
+        p0 = (c - diag * ln["d"]).round().astype(int)
+        p1 = (c + diag * ln["d"]).round().astype(int)
+        if cv2 is not None:
+            cv2.line(cut, (int(p0[0]), int(p0[1])), (int(p1[0]), int(p1[1])), 1, 1)
+
+    faces0, nf = _components(interior & (cut == 0))          # faces, cut cells still 0
+    if nf <= 1:
+        return interior.astype(np.int32), 1
+    faces = _multi_source_fill(np.where(interior, faces0, 0), interior)  # grow over the cuts
+
+    # Per-face evidence (the data term): point mass, and whether the camera stood in it.
+    cam_set = {(int(y), int(x)) for y, x in cam_cells} if len(cam_cells) else set()
+    border = np.zeros((H, W), bool)
+    border[0, :] = border[-1, :] = border[:, 0] = border[:, -1] = True
+
+    def _face_stats(lab: np.ndarray) -> tuple[dict, dict, dict, dict]:
+        ids = [int(k) for k in np.unique(lab) if k != 0]
+        return ({k: float(grid[lab == k].sum()) for k in ids},
+                {k: int((lab == k).sum()) for k in ids},
+                {k: any(lab[y, x] == k for y, x in cam_set) for k in ids},
+                {k: bool((lab == k)[border].any()) for k in ids})
+
+    # The smoothness term. The arrangement EDGE between two faces is the whole run of cut
+    # cells with one face on each side - the full wall line, doorway gap included - not just
+    # where the two rooms' free space happens to touch. Its wall support is the fraction of
+    # that run on real wall point-support: a doorway is a short unbacked stretch in an
+    # otherwise backed line (rooms stay apart), an extended line with no wall under it scores
+    # ~0 (faces merge). Computed once here against the fixed `faces0`; the greedy merge below
+    # only relabels, so edges re-aggregate by remap without re-scanning the grid.
+    cyx = np.argwhere(cut > 0)
+    e_a = np.zeros(len(cyx), np.int32)
+    e_b = np.zeros(len(cyx), np.int32)
+    e_backed = wall_dil[cyx[:, 0], cyx[:, 1]].astype(np.int8)
+    for i, (y, x) in enumerate(cyx):
+        s = {int(v) for v in (faces0[y - 1, x] if y > 0 else 0,
+                              faces0[y + 1, x] if y < H - 1 else 0,
+                              faces0[y, x - 1] if x > 0 else 0,
+                              faces0[y, x + 1] if x < W - 1 else 0) if v > 0}
+        if len(s) == 2:
+            e_a[i], e_b[i] = sorted(s)
+    keep = e_a > 0
+    e_a, e_b, e_backed = e_a[keep], e_b[keep], e_backed[keep]
+
+    remap: dict[int, int] = {}
+
+    def _cur(k: int) -> int:
+        while k in remap:
+            k = remap[k]
+        return k
+
+    for _ in range(nf):
+        ca = np.array([_cur(v) for v in e_a])
+        cb = np.array([_cur(v) for v in e_b])
+        m = ca != cb
+        if not m.any():
+            break
+        key = ca[m] * 1_000_003 + cb[m]
+        best_pair, best_supp = None, 1.0
+        for k in np.unique(key):
+            supp = float(e_backed[m][key == k].mean())
+            if supp < best_supp:
+                best_supp, best_pair = supp, (int(ca[m][key == k][0]), int(cb[m][key == k][0]))
+        if best_pair is None or best_supp >= FACE_MERGE_SUPPORT:
+            break
+        lo_, hi_ = sorted(best_pair)
+        remap[hi_] = lo_
+
+    if remap:
+        flat = np.array([_cur(int(k)) for k in range(faces.max() + 1)])
+        faces = flat[faces]
+    fmass, farea, fcam, fborder = _face_stats(faces)
+
+    # Drop faces that are outside the building: on the border, sparse, no camera.
+    for k in list(np.unique(faces)):
+        if k == 0:
+            continue
+        if (fborder.get(int(k)) and not fcam.get(int(k))
+                and fmass.get(int(k), 0) / max(farea.get(int(k), 1), 1) < OUTSIDE_MAX_PTS_PER_CELL):
+            faces[faces == k] = 0
+
+    # Relabel 1..K.
+    keep = [int(k) for k in np.unique(faces) if k != 0]
+    remap = {k: i + 1 for i, k in enumerate(keep)}
+    out = np.zeros_like(faces)
+    for k, v in remap.items():
+        out[faces == k] = v
+    return out, len(keep)
+
+
 def extract_floorplan(points: np.ndarray, normals: np.ndarray | None,
                       gravity_prior: np.ndarray, camera_centers: np.ndarray | None = None,
                       cell_m: float = CELL_M) -> FloorPlan | None:
@@ -309,10 +477,10 @@ def extract_floorplan(points: np.ndarray, normals: np.ndarray | None,
     grid = np.zeros((ny, nx), np.int32)
     np.add.at(grid, (ij[:, 1] + 1, ij[:, 0] + 1), 1)
     pos = grid[grid > 0]
-    wall = grid >= max(3, int(np.percentile(pos, WALL_MIN_PCTL)))
-    # Close 1-cell gaps in wall coverage so free space cannot leak between rooms through a
-    # thin spot in a wall's point support - that leak is what fuses two rooms into one blob.
-    wall = _dilate(wall, 1)
+    wall_raw = grid >= max(3, int(np.percentile(pos, WALL_MIN_PCTL)))
+    # `wall` (gap-closed) guards free-space flooding and supplies wall evidence for face
+    # merging; `wall_raw` (thin) is what the Hough line finder reads.
+    wall = _dilate(wall_raw, 1)
 
     # Free space: reachable from inside without crossing a wall cell. Seed from the camera
     # trajectory when we have it (always inside the room), else from the raster border's
@@ -335,52 +503,18 @@ def extract_floorplan(points: np.ndarray, normals: np.ndarray | None,
     if interior.sum() < MIN_ROOM_M2 / (cell_m * cell_m):
         return None
 
-    # Carve rooms. A room's interior is "wide" everywhere except at a doorway, where the
-    # free-space pinches to the door's clear width. So: distance-transform the interior, keep
-    # only cells more than ROOM_CORE_M from any wall as room cores (a doorway never clears
-    # that), label the cores, and grow each one back over the whole interior by geodesic BFS
-    # - neighbouring cores meet exactly at the doorway pinch, which is the cut. This is
-    # robust to the door's actual width in a way a single fixed erosion radius is not.
-    if cv2 is not None:
-        dist = cv2.distanceTransform(interior.astype(np.uint8), cv2.DIST_L2, 5) * cell_m
-    else:
-        dist = _erode_distance(interior) * cell_m
-    cores, ncore = _components(dist > ROOM_CORE_M)
-    if ncore <= 1:
-        room_lab = interior.astype(np.int32)          # one room
-        nrooms = 1
-    else:
-        room_lab = _multi_source_fill(np.where(interior, cores, 0), interior)
-        nrooms = ncore
-
-    # Undo splits that did not run through a real doorway. The distance-transform cores also
-    # fragment on furniture standing in open floor - a bed, a table - which creates a false
-    # pinch. A true doorway forces the watershed boundary through a narrow gap where every
-    # cell is close to a wall; a cut around furniture sits in open space. So: merge any two
-    # rooms whose shared boundary never pinches (its cells stay far from any wall).
-    def _pairs(lab: np.ndarray) -> dict:
-        acc: dict[tuple[int, int], list[float]] = {}
-        ys, xs = np.nonzero(lab > 0)
-        for y, x in zip(ys, xs):
-            a = lab[y, x]
-            for ay, ax in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
-                if 0 <= ay < ny and 0 <= ax < nx and lab[ay, ax] > a:
-                    acc.setdefault((int(a), int(lab[ay, ax])), []).append(dist[y, x])
-        return acc
-
-    for _ in range(nrooms):
-        pairs = _pairs(room_lab)
-        if not pairs:
-            break
-        worst, worst_pinch = None, 0.0
-        for pr, ds in pairs.items():
-            pinch = float(np.median(ds))            # how wide the "opening" stays
-            if pinch > worst_pinch:
-                worst, worst_pinch = pr, pinch
-        if worst is None or worst_pinch <= PINCH_MAX_M:
-            break
-        lo, hi = worst
-        room_lab[room_lab == hi] = lo               # merge the split back together
+    # Carve rooms: wall-line arrangement + greedy wall-supported face merging (see the module
+    # docstring, step 4). Camera cells are the trajectory, offset by the +1 raster pad.
+    cam_cells = np.empty((0, 2), int)
+    if camera_centers is not None and len(camera_centers):
+        cc = np.stack([camera_centers @ e1, camera_centers @ e2], axis=1)
+        cc = np.floor((cc - mn) / cell_m).astype(int) + 1
+        m = (cc[:, 0] >= 0) & (cc[:, 0] < nx) & (cc[:, 1] >= 0) & (cc[:, 1] < ny)
+        cam_cells = np.stack([cc[m, 1], cc[m, 0]], axis=1)          # (row, col)
+    room_lab, nrooms = _segment_by_arrangement(wall_raw, wall, grid, interior,
+                                               cam_cells, cell_m)
+    if nrooms == 0:
+        room_lab, nrooms = interior.astype(np.int32), 1
 
     # Merge undersized rooms into the neighbour they share the most boundary with.
     min_cells = MIN_ROOM_M2 / (cell_m * cell_m)

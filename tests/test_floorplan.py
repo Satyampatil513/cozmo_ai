@@ -6,9 +6,10 @@ This is the LiDAR measurement path (`pipeline/geometry/floorplan.py`). It replac
 plane-per-wall polygon for LiDAR because that path needs every wall to have "nothing behind
 it" and so returns None on any walkthrough, and because trajectory-density room splitting
 over-segments a single scan. The cases here pin down the part that does not need real data:
-that a fused metric cloud is projected to the floor, rasterised, carved into rooms at doorway
-pinch-points, and that each room comes back with a length x width and a defended - or
-honestly abstained - ceiling height.
+that a fused metric cloud is projected to the floor, rasterised, carved into rooms by the
+wall-line arrangement (Hough centre-lines -> face split -> merge faces whose separating line
+carries little wall evidence), and that each room comes back with a length x width and a
+defended - or honestly abstained - ceiling height.
 
 The synthetic cloud is built in an ARKit-style Y-up world frame, matching the LiDAR loader.
 """
@@ -84,6 +85,48 @@ def two_room_cloud(doorway=(1.05, 1.95), with_ceiling=True, seed=0):
     cams = np.array([[1.2, 1.4, 1.5], [2.6, 1.4, 1.8], [3.2, 1.4, 0.9],
                      [5.0, 1.4, 1.5], [6.4, 1.4, 1.9], [7.0, 1.4, 0.8]])
     return pts, nrm, cams
+
+
+def one_room_with_furniture(seed=1):
+    """One 5 x 4 m room with a 1.4 x 1.0 m solid block standing in the middle of the floor -
+    a wardrobe / island. A distance-transform split fragments on this; the arrangement
+    method must not, because the block casts no wall LINE across the room."""
+    rng = np.random.default_rng(seed)
+    P, N = [], []
+
+    def add(p, n):
+        p = np.asarray(p, float)
+        P.append(p + rng.normal(0, 0.006, p.shape))
+        N.append(np.tile(np.asarray(n, float), (len(p), 1)) if np.ndim(n) == 1 else n)
+
+    add(*_slab(0, 5, 0, 4, 0.0, [0, 1, 0]))
+    add(*_slab(0, 5, 0, 4, CEIL, [0, -1, 0]))
+    add(*_wall(0, 0, 0, 4, "x")); add(*_wall(5, 5, 0, 4, "x"))
+    add(*_wall(0, 5, 0, 0, "z")); add(*_wall(0, 5, 4, 4, "z"))
+    # furniture block: four short faces, ~1.4 m tall, standing free at (1.8-3.2, 1.5-2.5)
+    for x in (1.8, 3.2):
+        zz, yy = np.meshgrid(np.linspace(1.5, 2.5, 40), np.linspace(0, 1.4, 60))
+        add(np.stack([np.full(zz.size, x), yy.ravel(), zz.ravel()], 1), [1.0, 0, 0])
+    for z in (1.5, 2.5):
+        xx, yy = np.meshgrid(np.linspace(1.8, 3.2, 56), np.linspace(0, 1.4, 60))
+        add(np.stack([xx.ravel(), yy.ravel(), np.full(xx.size, z)], 1), [0, 0, 1.0])
+
+    cams = np.array([[0.8, 1.4, 0.8], [1.0, 1.4, 3.4], [4.2, 1.4, 0.7],
+                     [4.3, 1.4, 3.3], [2.5, 1.4, 3.6]])
+    return np.concatenate(P), np.concatenate(N), cams
+
+
+def test_furniture_does_not_split_a_room():
+    pts, nrm, cams = one_room_with_furniture()
+    fp = extract_floorplan(pts, nrm, UP, camera_centers=cams)
+    check("furniture in open floor -> still one room",
+          fp is not None and len(fp.rooms) == 1,
+          f"{None if fp is None else len(fp.rooms)}")
+    if fp and fp.rooms:
+        rm = fp.rooms[0]
+        lo, hi = sorted((rm.length_m, rm.width_m))
+        check("room is ~4 x 5 m", abs(lo - 4.0) < 0.5 and abs(hi - 5.0) < 0.5,
+              f"{hi:.2f} x {lo:.2f} m")
 
 
 def test_two_rooms_split_at_the_doorway():
