@@ -35,18 +35,18 @@ device for the LiDAR tier, both capturing the same rooms of one 3BHK.
 
 | # | Requirement | Path | Artifact | Status |
 |---|---|---|---|---|
-| 2.1 | Walls | pipeline/geometry/walls.py | room polygon + wall-pair spans | PARTIAL - wall-pair spans +1.8% vs tape (LiDAR); first real polygon produced on photo Room 2 via multiview, still None on most captures |
+| 2.1 | Walls | pipeline/geometry/walls.py, pipeline/geometry/floorplan.py | room polygon + wall-pair spans | PARTIAL - wall-pair spans +1.8% vs tape (LiDAR). LiDAR tier now produces per-room wall polygons from a wall-line arrangement (floorplan.py, report §9): benchmark .r3d closes as one room, ceiling -1.5% vs tape; a multi-room scan resolves 4 rooms + 1 flagged unresolved region. Room dims unscored (no floor-plan ground truth). Photo/video polygon still rare |
 | 2.2 | Ceiling height | pipeline/geometry/planes.py | measurement + abstention | PARTIAL - LiDAR +3.8%, video +7.2%, photo +1.9% to +11.9% by room. Abstains rather than guessing. Gate is <=1.5 cm; we are an order of magnitude out |
 | 2.3 | Floor area | pipeline/geometry/walls.py | measurement | PARTIAL - 12.535 m2 on photo Room 2, the only real capture that closed a polygon. Unscored: no ground truth |
 | 2.4 | Openings | pipeline/geometry/openings.py | list | PARTIAL - door height +1.9% vs tape, 1 false positive |
-| 2.5 | Stitched plan with adjacency | pipeline/stitching/stitch.py | property plan | PARTIAL - video/lidar and photo-tier stitching are both built and wired into run.py; no real capture has produced a confirmed multi-room stitch yet (real cross-room evidence has so far always been rejected by the verification gates, correctly - see docs/TECHNICAL_REPORT.md §4/§7) |
+| 2.5 | Stitched plan with adjacency | pipeline/geometry/floorplan.py (LiDAR), pipeline/stitching/stitch.py (photo/video) | property plan | PARTIAL - LiDAR: a real multi-room scan produces a placed, connected, dimensioned plan from the wall-line arrangement (report §9); the corridor is absorbed into a neighbour rather than named, and a large open area stays one flagged block. Photo/video stitching is built and wired but no real capture has closed a multi-room stitch (cross-room evidence correctly rejected by the gates - §4/§7) |
 | 2.6 | Damage regions, class + metric extent | pipeline/damage/detect.py, pipeline/measure.py | list in result.json | BUILT, wired on the per-frame path; emitted in the schema output (tests/test_output_schema.py). First pass, unfitted thresholds - OUT OF SCOPE for scoring (no staged damage). Technical report §8 |
 | 2.7 | Concealed-damage flags with rule fired | pipeline/damage/rules.py | concealed_flag per region | BUILT, emitted with each damage region; synthetic-tested |
 | 2.8 | Scope line items keyed to surfaces | pipeline/damage/scope.py | scope_items[] | BUILT, emitted; quantity inherited from the damage extent, never re-estimated |
 | 2.9 | Confidence interval on every measurement | pipeline/confidence/intervals.py | Measurement | PARTIAL - every ceiling/wall/area/damage measurement carries a 95% interval; the error model's (rel, abs) per tier are still the placeholder values, with the fitted numbers now produced by benchmark/scripts/calibrate.py (see 2.23) but not yet pasted in |
 | 2.10 | One command per capture | run.py | CLI, all 3 tiers | DONE |
 | 2.11 | JSON to published schema | pipeline/output/schema_adapter.py + tests/test_output_schema.py | adapter + 13/13 real results validated | PARTIAL - validates cleanly, but `walls[]` (the schema's polygon-based model) has no field for wall-pair separation, our most reliable measurement - stated in the adapter's own docstring, not silently worked around |
-| 2.12 | Rendered plan | pipeline/output/render.py | SVG + PNG | PARTIAL - draws a stitched video/lidar property (room polygons, dims with interval width, connections); single-room/photo has no adjacency to draw and is out of scope for this renderer |
+| 2.12 | Rendered plan | pipeline/output/render.py, pipeline/geometry/floorplan.py | SVG + PNG | DONE for LiDAR - every LiDAR run writes `blueprint.png`/`.svg` (room polygons, per-room ceiling + area with interval width, connections) and `raster.png` (the wall occupancy grid the plan is built from). Photo single-room has no adjacency to draw |
 
 ## Open interpretation: which gates loosen at the photo and video tiers
 
@@ -69,7 +69,7 @@ than required, which costs nothing. The reverse assumption would have cost the r
 | # | Requirement | Path | Artifact | Status |
 |---|---|---|---|---|
 | 2.13 | 3+ rooms plus connector | benchmark/raw/photo | 5 rooms: 3 bedrooms, kitchen, hallway (connector) | DONE |
-| 2.14 | Furnished room, staged damage, 2 classes | - | - | OUT OF SCOPE - no damage staged; per-surface damage scoring is not part of this submission. `pipeline/damage/` exists as a synthetic-validated first pass (technical report §8), not wired into `run.py` |
+| 2.14 | Furnished room, staged damage, 2 classes | - | - | OUT OF SCOPE - no damage staged; per-surface damage scoring is not part of this submission. `pipeline/damage/` is a synthetic-validated first pass, wired on the per-frame path and emitted in the schema output (2.6-2.8, technical report §8) |
 | 2.15 | Same rooms at all 3 tiers | benchmark/raw/{photo,video,lidar}/ | raw data | WAIVED by the team - see note below |
 | 2.16 | One room captured twice, same tier | benchmark/raw/video/ | IMG_0460.MOV, IMG_0462.MOV | DONE - the property walked twice at the video tier |
 | 2.17 | Tape/laser ground truth | benchmark/ground_truth/ | laser survey | DONE - 19/20 wall lengths, 10/10 ceilings, 5/5 doors. Ceiling 2.74 m (supersedes an earlier 2.64 m tape figure). Windows discarded by the operator; `room_03_bed_two` w4 not measured |
@@ -106,6 +106,6 @@ between tiers does not.
 | D.0 | Capture sessions executed | benchmark/raw/ | 29 photos / 1 clip / 1 .r3d | DONE - photo and video shot in the 3BHK; .r3d supplied by the team (different property, waived) |
 | D.3 | README, fresh machine to running in 15 min | README.md | doc | PARTIAL |
 | C.1 | Weights fetched by script, not committed as binaries | scripts/fetch_weights.py | CLI | DONE |
-| D.4 | Reproduction bundle | docs/REPRODUCTION.md | doc | DONE - fresh-machine setup, one-shot regen commands, number-by-number map, determinism/cache notes |
-| D.7 | Technical report, max 6 pages | docs/TECHNICAL_REPORT.md | doc + 9 stage images | DONE |
+| D.4 | Reproduction bundle | docs/REPRODUCTION.md, scripts/make_reproduction_bundle.py | doc + zip | DONE - `scripts/make_reproduction_bundle.py` zips benchmark/raw + ground_truth + depth cache + key docs (~1.2 GB, `--lite` drops the video) with its own BUNDLE_README; docs/REPRODUCTION.md is the number-by-number map. Team-supplied Stray scans (report §9) live outside the repo; run.py points at their dirs directly |
+| D.7 | Technical report, max 6 pages | docs/TECHNICAL_REPORT.md | doc + 11 stage images | PARTIAL - trimmed to ~2870 words / 11 images (10 sections); a Word/PDF export runs slightly over 6 pages and needs a final image-size / cut pass |
 | D.8 | Raw benchmark data | benchmark/raw/ | data | DONE - photo, video and lidar captures committed |
