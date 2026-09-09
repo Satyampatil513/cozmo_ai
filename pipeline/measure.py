@@ -278,6 +278,31 @@ def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
     posed = [f for f in frames if f.T_wc is not None and f.depth is not None]
     result["posed_frames"] = len(posed)
 
+    # LiDAR: measure straight off the fused metric cloud. A dense range cloud does not need
+    # the plane-per-wall polygon path (which requires every wall to have "nothing behind it"
+    # and so returns None on any walkthrough) nor trajectory-density room splitting (which
+    # over-segments a single scan into phantom rooms). extract_floorplan projects the cloud
+    # to the floor, rasterises the walls, and carves rooms at doorway pinch-points in 2D.
+    # See pipeline/geometry/floorplan.py. Photo and video keep the existing path below.
+    if room.tier == "lidar" and len(posed) >= 3:
+        from pipeline.capture.lidar import ARKIT_WORLD_UP
+        from pipeline.geometry.floorplan import extract_floorplan
+        fc = fuse_frames(posed, stride=2)
+        result["fused"] = {"n_raw": fc.n_raw, "n_points": int(len(fc.points)),
+                           "n_frames": fc.n_frames}
+        cam = np.array([f.T_wc[:3, 3] for f in posed]) if posed else None
+        fp = extract_floorplan(fc.points, fc.normals, ARKIT_WORLD_UP, camera_centers=cam)
+        if fp is not None:
+            scale = room.scale or Scale()
+            result.update(fp.to_result(room.room_id, room.tier, scale))
+            if result.get("ceiling_height"):
+                result["ceiling_height_measurement"] = length_measurement(
+                    result["ceiling_height"], room.tier, scale,
+                    "floor-to-ceiling plane separation over the room footprint").to_json()
+            result["seconds"] = round(time.time() - t0, 1)
+            return result
+        result["floorplan_failed"] = "no floor plane could be fit to the fused cloud"
+
     stitched = False
     if len(frames) >= 6 and room.tier in ("video", "lidar"):
         # A continuous video/lidar capture that walked through several rooms is not

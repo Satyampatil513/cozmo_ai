@@ -236,7 +236,7 @@ def main() -> int:
         json.dump(result, fh, indent=2, cls=_NpEncoder)
 
     blueprint_report = None
-    if any(r.get("mode") == "stitched" for r in rooms):
+    if any(r.get("mode") in ("stitched", "floorplan") for r in rooms):
         # A blueprint is only meaningful once there is more than one room to place relative
         # to another - a single unstitched room has no adjacency to draw. Written from the
         # SAME dict just serialised to result.json, via json round-trip, so the renderer is
@@ -268,6 +268,22 @@ def main() -> int:
                       f"walls={sr.get('n_walls','-')} "
                       f"openings={len(sr.get('openings', []))}")
             continue
+        if r.get("mode") == "floorplan":
+            print(f"  {r['room_id']:<24} mode=floorplan  "
+                  f"{r.get('n_rooms_detected', '?')} room(s), "
+                  f"{len(r.get('connections', []))} connection(s), "
+                  f"footprint={r.get('footprint_area_m2', '-')} m2  "
+                  f"(selection_score {r.get('selection_score', '-')})")
+            for sr in r.get("sub_rooms", []):
+                sch = sr.get("ceiling_height")
+                print(f"      {sr['room_id']:<22} "
+                      f"{sr.get('length_m', '-')} x {sr.get('width_m', '-')} m  "
+                      f"area={sr.get('floor_area_measurement', {}).get('value', '-')} m2  "
+                      f"ceiling={f'{sch:.3f}m' if sch else 'abstained'}"
+                      + ("" if sch else f"  ({sr.get('abstain_reason', '')})"))
+            for note in r.get("floorplan_notes", []):
+                print(f"      note: {note}")
+            continue
         ch = r.get("ceiling_height")
         print(f"  {r['room_id']:<24} mode={r.get('mode','-'):<10} "
               f"ceiling={f'{ch:.3f}m' if ch else 'abstained':<12} "
@@ -297,7 +313,9 @@ def main() -> int:
         print(f"DAMAGE: {damage_regions} first-pass region(s) - unfitted thresholds, out of "
               f"scope for scoring (see docs/TECHNICAL_REPORT.md section 8)")
     not_built = []
-    if not any(r.get("mode") == "stitched" for r in rooms):
+    multi_room = any(r.get("mode") == "stitched" for r in rooms) or any(
+        r.get("mode") == "floorplan" and r.get("n_rooms_detected", 0) > 1 for r in rooms)
+    if not multi_room:
         not_built.append("multi-room stitching (photo-tier needs doorway-pair shots; "
                          "video/lidar needs >1 room detected in this capture)")
     if not_built:
