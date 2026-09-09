@@ -26,8 +26,9 @@ in it. So:
           where a wall was actually seen." A doorway (small gap in an otherwise solid wall)
           keeps the two rooms apart; an extended line with no wall under it, or a wide
           opening, does not.
-  5. fit a rotated rectangle to each room for length x width, and read each room's own
-     ceiling height from the points above its footprint.
+  5. report each room as its ACTUAL outline (the simplified raster contour, so an L-shaped
+     room stays L-shaped), with length x width as scalars from the rotated bounding rect and
+     ceiling height read from the points above that room's own footprint.
 
 WHAT IT DELIBERATELY DOES NOT DO. It does not detect openings (that stays on the plane path),
 it does not claim a calibrated interval on the footprint, and it abstains on a room's height
@@ -81,27 +82,28 @@ CONNECT_GAP_M = 0.40           # two rooms whose boxes sit this close share a do
 @dataclass
 class PlanRoom:
     room_id: str
-    width_m: float
-    length_m: float
-    area_m2: float                       # actual occupied footprint, not width*length
+    width_m: float                       # short / long side of the rotated bounding rect,
+    length_m: float                      # kept as the "L x W" scalars only
+    area_m2: float                       # actual occupied footprint (cell count), not L*W
     ceiling_height_m: float | None
     ceiling_note: str
     n_points: int
-    box_world: np.ndarray                # 4x2, rotated-rect corners in the shared floor basis
+    poly_world: np.ndarray               # Nx2, the room's ACTUAL outline in the shared floor
+                                         # basis - follows the raster, not a bounding box
     center_world: np.ndarray             # 2, shared floor basis
 
     def to_subroom(self, tier: str, scale) -> dict:
         from pipeline.confidence.intervals import area_measurement, length_measurement
-        box = self.box_world
-        local = box - box.mean(axis=0)
-        edges = np.linalg.norm(np.roll(box, -1, axis=0) - box, axis=1)
+        poly_w = self.poly_world
+        local = poly_w - poly_w.mean(axis=0)
+        edges = np.linalg.norm(np.roll(poly_w, -1, axis=0) - poly_w, axis=1)
         poly = {
             "corners": [[round(float(x), 4), round(float(y), 4)] for x, y in local],
-            "world_corners": [[round(float(x), 4), round(float(y), 4)] for x, y in box],
+            "world_corners": [[round(float(x), 4), round(float(y), 4)] for x, y in poly_w],
             "wall_lengths": [round(float(e), 4) for e in edges],
             "floor_area": round(float(self.area_m2), 4),
         }
-        wl = [length_measurement(float(e), tier, scale, "floor-plan rotated-rect edge").to_json()
+        wl = [length_measurement(float(e), tier, scale, "floor-plan room outline edge").to_json()
               for e in edges]
         fa = area_measurement(float(self.area_m2), tier, scale,
                               "floor-plan occupied footprint").to_json()
@@ -112,7 +114,7 @@ class PlanRoom:
             "floor_area_measurement": fa,
             "width_m": round(float(self.width_m), 4),
             "length_m": round(float(self.length_m), 4),
-            "n_walls": 4,
+            "n_walls": len(poly_w),
             "n_points": int(self.n_points),
             "openings": [],
             "surfaces": [],
@@ -320,13 +322,15 @@ def _wall_centre_lines(wall_raw: np.ndarray, cell_m: float) -> list[dict]:
 
 def _segment_by_arrangement(wall_raw: np.ndarray, wall_dil: np.ndarray, grid: np.ndarray,
                             interior: np.ndarray, cam_cells: np.ndarray, cell_m: float
-                            ) -> tuple[np.ndarray, int]:
+                            ) -> tuple[np.ndarray, int, float | None]:
     """Faces of the wall-line arrangement, labelled into rooms by greedy wall-supported
-    merging (arrangement step c). Returns (room_lab over `interior`, n_rooms)."""
+    merging (arrangement step c). Returns (room_lab over `interior`, n_rooms, dominant
+    wall angle in degrees or None)."""
     H, W = wall_raw.shape
     lines = _wall_centre_lines(wall_raw, cell_m)
     if not lines:
-        return interior.astype(np.int32), 1
+        return interior.astype(np.int32), 1, None
+    a0 = max(lines, key=lambda ln: ln["support"])["angle"]
 
     # Draw every line across the whole plan: these cuts define the arrangement faces.
     cut = np.zeros((H, W), np.uint8)
@@ -340,7 +344,7 @@ def _segment_by_arrangement(wall_raw: np.ndarray, wall_dil: np.ndarray, grid: np
 
     faces0, nf = _components(interior & (cut == 0))          # faces, cut cells still 0
     if nf <= 1:
-        return interior.astype(np.int32), 1
+        return interior.astype(np.int32), 1, a0
     faces = _multi_source_fill(np.where(interior, faces0, 0), interior)  # grow over the cuts
 
     # Per-face evidence (the data term): point mass, and whether the camera stood in it.
@@ -419,7 +423,7 @@ def _segment_by_arrangement(wall_raw: np.ndarray, wall_dil: np.ndarray, grid: np
     out = np.zeros_like(faces)
     for k, v in remap.items():
         out[faces == k] = v
-    return out, len(keep)
+    return out, len(keep), a0
 
 
 def extract_floorplan(points: np.ndarray, normals: np.ndarray | None,
@@ -511,8 +515,8 @@ def extract_floorplan(points: np.ndarray, normals: np.ndarray | None,
         cc = np.floor((cc - mn) / cell_m).astype(int) + 1
         m = (cc[:, 0] >= 0) & (cc[:, 0] < nx) & (cc[:, 1] >= 0) & (cc[:, 1] < ny)
         cam_cells = np.stack([cc[m, 1], cc[m, 0]], axis=1)          # (row, col)
-    room_lab, nrooms = _segment_by_arrangement(wall_raw, wall, grid, interior,
-                                               cam_cells, cell_m)
+    room_lab, nrooms, a0_deg = _segment_by_arrangement(wall_raw, wall, grid, interior,
+                                                       cam_cells, cell_m)
     if nrooms == 0:
         room_lab, nrooms = interior.astype(np.int32), 1
 
@@ -535,51 +539,79 @@ def extract_floorplan(points: np.ndarray, normals: np.ndarray | None,
                         nb[v] = nb.get(v, 0) + 1
         room_lab[room_lab == k] = max(nb, key=nb.get) if nb else 0
 
+    # Grow every room label out to fill the whole building envelope, so a room's boundary
+    # runs ALONG the walls (not the ragged edge of its free space) and NOTHING inside the
+    # outer wall is left unlabelled - the corridor/hall between rooms is a region too, it
+    # just belongs to whichever room's front door it is nearest. The envelope is the filled
+    # outer contour of (interior + wall); growth is bounded to it so a doorway or an
+    # occlusion gap in the outer wall cannot leak a label outside.
+    envelope = interior | wall_raw
+    if cv2 is not None:
+        cc = cv2.findContours(envelope.astype(np.uint8), cv2.RETR_EXTERNAL,
+                              cv2.CHAIN_APPROX_SIMPLE)[0]
+        if cc:
+            filled = np.zeros_like(envelope, np.uint8)
+            cv2.drawContours(filled, [max(cc, key=cv2.contourArea)], -1, 1, -1)
+            envelope = filled.astype(bool)
+    # Fill over the whole envelope (walls included) so a label can reach a corridor pocket
+    # that is otherwise walled off from every room's own free space; wall cells are cleared
+    # again afterwards. BFS hands each pocket to whichever room is nearest.
+    room_full = _multi_source_fill(room_lab.copy(), envelope)
+    room_full[wall_raw] = 0
+
     # One point-to-room lookup for the whole cloud, reused for every room's height read.
     puv = np.stack([points @ e1, points @ e2], axis=1)
     pij = np.floor((puv - mn) / cell_m).astype(int) + 1
     inb = (pij[:, 0] >= 0) & (pij[:, 0] < nx) & (pij[:, 1] >= 0) & (pij[:, 1] < ny)
     pt_room = np.zeros(len(points), np.int32)
-    pt_room[inb] = room_lab[pij[inb, 1], pij[inb, 0]]
+    pt_room[inb] = room_full[pij[inb, 1], pij[inb, 0]]
 
-    labels = [int(k) for k in np.unique(room_lab) if k != 0]
+    labels = [int(k) for k in np.unique(room_full) if k != 0]
     rooms: list[PlanRoom] = []
     total_area = 0.0
     for k in labels:
-        cell_mask = room_lab == k
+        cell_mask = room_full == k
         ncells = int(cell_mask.sum())
-        area = ncells * cell_m * cell_m
-        total_area += area
         ys, xs = np.nonzero(cell_mask)
         cells_uv = np.stack([(xs - 1) * cell_m + mn[0], (ys - 1) * cell_m + mn[1]], axis=1)
+
+        raw_area = ncells * cell_m * cell_m
+        bb = cv2.minAreaRect(cells_uv.astype(np.float32))[1] if cv2 is not None else (
+            cells_uv.max(0) - cells_uv.min(0))
+        unresolved = raw_area > 45.0 and raw_area / max(bb[0] * bb[1], 1e-6) < 0.62
+
+        # The polygon that gets drawn IS the room. A room that resolved gets its outline
+        # snapped to straight walls; the unresolved region keeps a fine contour so the shape
+        # it is responsible for is actually covered rather than tidied into a lie.
+        poly_world = _room_outline(cell_mask, mn, cell_m, None if unresolved else a0_deg,
+                                   fine=unresolved)
+        if poly_world is None:
+            poly_world = np.array([cells_uv.min(0), [cells_uv[:, 0].max(), cells_uv[:, 1].min()],
+                                   cells_uv.max(0), [cells_uv[:, 0].min(), cells_uv[:, 1].max()]])
+        area = float(_poly_area(poly_world))
+        total_area += area
+
         if cv2 is not None:
-            rect = cv2.minAreaRect(cells_uv.astype(np.float32))
-            box = cv2.boxPoints(rect).astype(float)
-            (rw, rh) = rect[1]
+            (rw, rh) = cv2.minAreaRect(poly_world.astype(np.float32))[1]
         else:
-            c0, c1 = cells_uv.min(axis=0), cells_uv.max(axis=0)
-            rw, rh = float(c1[0] - c0[0]), float(c1[1] - c0[1])
-            box = np.array([[c0[0], c0[1]], [c1[0], c0[1]], [c1[0], c1[1]], [c0[0], c1[1]]])
-        width_m, length_m = sorted((rw + cell_m, rh + cell_m))
+            span = poly_world.max(axis=0) - poly_world.min(axis=0)
+            rw, rh = float(span[0]), float(span[1])
+        width_m, length_m = sorted((float(rw), float(rh)))
 
         sel = pt_room == k
         ch, note = _room_ceiling(h[sel], puv[sel], floor_h, ncells, mn, cell_m)
 
-        # A region that is large AND fills its own bounding rectangle poorly is almost
-        # certainly several rooms the doorway erosion failed to separate, not one L-shaped
-        # room. Report it, but say so - a silent 80 m2 "room" is exactly the confident
-        # garbage this pipeline is meant not to emit.
-        fill = area / max((rw + cell_m) * (rh + cell_m), 1e-6)
-        if area > 40.0 and fill < 0.65:
-            notes.append(f"a {area:.0f} m2 region did not resolve into a single room "
-                         f"(fills {fill * 100:.0f}% of its bounding box) - likely several "
-                         f"rooms joined by wide openings; its length x width is a bounding "
-                         f"figure, not a room")
+        if unresolved:
+            notes.append(f"a {raw_area:.0f} m2 region did not resolve into a single room "
+                         f"(fills {raw_area / max(bb[0] * bb[1], 1e-6) * 100:.0f}% of its "
+                         f"bounding box) - likely several rooms plus the corridor between "
+                         f"them, joined by wide openings; its length x width is a bounding "
+                         f"figure, not a room, and its outline is drawn but not squared off")
 
         rooms.append(PlanRoom(
             room_id="", width_m=width_m, length_m=length_m, area_m2=area,
             ceiling_height_m=ch, ceiling_note=note, n_points=int(sel.sum()),
-            box_world=box, center_world=cells_uv.mean(axis=0)))
+            poly_world=poly_world, center_world=cells_uv.mean(axis=0)))
 
     if not rooms:
         return None
@@ -591,7 +623,7 @@ def extract_floorplan(points: np.ndarray, normals: np.ndarray | None,
     connections: list[dict] = []
     for a in range(len(rooms)):
         for b in range(a + 1, len(rooms)):
-            d = _box_gap(rooms[a].box_world, rooms[b].box_world)
+            d = _box_gap(rooms[a].poly_world, rooms[b].poly_world)
             if d < CONNECT_GAP_M:
                 connections.append({
                     "rooms": [rooms[a].room_id, rooms[b].room_id],
@@ -602,6 +634,105 @@ def extract_floorplan(points: np.ndarray, normals: np.ndarray | None,
 
     return FloorPlan(rooms=rooms, gravity=g, floor_h=floor_h, selection_score=float(score),
                      footprint_area_m2=total_area, connections=connections, notes=notes)
+
+
+def _room_outline(cell_mask: np.ndarray, mn: np.ndarray, cell_m: float,
+                  a0_deg: float | None, fine: bool = False) -> np.ndarray | None:
+    """The room's boundary as a polygon in world (u, v): CLOSE the mask to fill 1-cell
+    notches (no OPEN - that would erode the room in from the walls it was just grown to),
+    contour, Douglas-Peucker, then snap each edge onto the capture's dominant orientation
+    (and its perpendicular) where close, and collapse the leftover staircase. A room that
+    stays jagged after that (the unresolved region) keeps its real many-cornered outline
+    rather than a tidy lie."""
+    if cv2 is None:
+        ys, xs = np.nonzero(cell_mask)
+        c0 = np.array([xs.min(), ys.min()], float)
+        c1 = np.array([xs.max(), ys.max()], float)
+        rect = np.array([[c0[0], c0[1]], [c1[0], c0[1]], [c1[0], c1[1]], [c0[0], c1[1]]])
+        return np.stack([(rect[:, 0] - 1) * cell_m + mn[0],
+                         (rect[:, 1] - 1) * cell_m + mn[1]], axis=1)
+
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    m = cv2.morphologyEx(cell_mask.astype(np.uint8), cv2.MORPH_CLOSE, k)
+    cnts = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+    if not cnts:
+        return None
+    cnt = max(cnts, key=cv2.contourArea)
+    eps = (0.10 if fine else max(3.0 * cell_m, 0.28)) / cell_m
+    approx = cv2.approxPolyDP(cnt, eps, True).reshape(-1, 2).astype(float)
+    if len(approx) < 3:
+        return None
+
+    world = np.stack([(approx[:, 0] - 1) * cell_m + mn[0],
+                      (approx[:, 1] - 1) * cell_m + mn[1]], axis=1)
+    return world if fine else _rectilinearise(world, a0_deg)
+
+
+def _rectilinearise(poly: np.ndarray, a0_deg: float | None, tol_deg: float = 18.0
+                    ) -> np.ndarray:
+    """Snap polygon edges onto {a0, a0+90} where within `tol_deg`, then rebuild vertices as
+    the intersections of consecutive (snapped) edge lines. Edges matching no axis keep their
+    own direction. Degenerate results fall back to the input."""
+    if a0_deg is None or len(poly) < 4:
+        return poly
+    n = len(poly)
+    dirs = np.roll(poly, -1, axis=0) - poly
+    ang = np.degrees(np.arctan2(dirs[:, 1], dirs[:, 0]))
+    axes = [a0_deg % 180.0, (a0_deg + 90.0) % 180.0]
+    snapped = dirs.copy()
+    for i in range(n):
+        for ax in axes:
+            d = ((ang[i] - ax + 90.0) % 180.0) - 90.0
+            if abs(d) <= tol_deg:
+                th = np.radians(ax)
+                u = np.array([np.cos(th), np.sin(th)])
+                snapped[i] = u * (dirs[i] @ u)          # project edge onto the axis
+                break
+    # Each edge i is the line through poly[i] with direction snapped[i]; a new vertex is the
+    # intersection of edge i-1 and edge i.
+    out = []
+    for i in range(n):
+        p0, d0 = poly[i - 1], snapped[i - 1]
+        p1, d1 = poly[i], snapped[i]
+        den = d0[0] * d1[1] - d0[1] * d1[0]
+        if abs(den) < 1e-6:
+            out.append(poly[i])
+            continue
+        t = ((p1[0] - p0[0]) * d1[1] - (p1[1] - p0[1]) * d1[0]) / den
+        out.append(p0 + t * d0)
+    out = np.array(out)
+    if not np.all(np.isfinite(out)) or _poly_area(out) < 0.3 * _poly_area(poly):
+        return poly
+    return _drop_short_and_collinear(out)
+
+
+def _drop_short_and_collinear(poly: np.ndarray, min_edge_m: float = 0.30,
+                              turn_tol_deg: float = 12.0) -> np.ndarray:
+    """Collapse a staircase: drop a vertex whose turn is tiny (near-collinear) or whose
+    incoming edge is shorter than a real wall segment. Iterated to a fixed point."""
+    p = poly.copy()
+    for _ in range(len(poly)):
+        if len(p) <= 4:
+            break
+        prev = np.roll(p, 1, axis=0)
+        nxt = np.roll(p, -1, axis=0)
+        a = p - prev
+        b = nxt - p
+        la = np.linalg.norm(a, axis=1)
+        lb = np.linalg.norm(b, axis=1)
+        cross = np.abs(a[:, 0] * b[:, 1] - a[:, 1] * b[:, 0])
+        turn = np.degrees(np.arcsin(np.clip(cross / np.maximum(la * lb, 1e-9), 0, 1)))
+        score = np.where((turn < turn_tol_deg) | (la < min_edge_m), la, np.inf)
+        j = int(np.argmin(score))
+        if not np.isfinite(score[j]):
+            break
+        p = np.delete(p, j, axis=0)
+    return p
+
+
+def _poly_area(p: np.ndarray) -> float:
+    return 0.5 * abs(float(np.dot(p[:, 0], np.roll(p[:, 1], -1))
+                          - np.dot(p[:, 1], np.roll(p[:, 0], -1))))
 
 
 def _box_gap(a: np.ndarray, b: np.ndarray) -> float:

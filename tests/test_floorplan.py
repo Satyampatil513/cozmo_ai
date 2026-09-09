@@ -129,6 +129,49 @@ def test_furniture_does_not_split_a_room():
               f"{hi:.2f} x {lo:.2f} m")
 
 
+def l_shaped_room_cloud(seed=2):
+    """One L-shaped room: a 5 x 4 m rectangle with a 2 x 2 m bite taken out of one corner.
+    True floor area 16 m2; its bounding box is 20 m2. The reported outline must follow the L,
+    not fill the box."""
+    rng = np.random.default_rng(seed)
+    P, N = [], []
+
+    def add(p, n):
+        p = np.asarray(p, float)
+        P.append(p + rng.normal(0, 0.006, p.shape))
+        N.append(np.tile(np.asarray(n, float), (len(p), 1)) if np.ndim(n) == 1 else n)
+
+    # floor + ceiling over the L (two rectangles: 5x2 plus 3x2)
+    add(*_slab(0, 5, 0, 2, 0.0, [0, 1, 0])); add(*_slab(0, 3, 2, 4, 0.0, [0, 1, 0]))
+    add(*_slab(0, 5, 0, 2, CEIL, [0, -1, 0])); add(*_slab(0, 3, 2, 4, CEIL, [0, -1, 0]))
+    # the six walls of the L
+    add(*_wall(0, 0, 0, 4, "x")); add(*_wall(5, 5, 0, 2, "x")); add(*_wall(3, 3, 2, 4, "x"))
+    add(*_wall(0, 5, 0, 0, "z")); add(*_wall(0, 3, 4, 4, "z")); add(*_wall(3, 5, 2, 2, "z"))
+    cams = np.array([[0.7, 1.4, 0.7], [4.3, 1.4, 0.8], [1.0, 1.4, 3.3],
+                     [2.5, 1.4, 1.0], [2.6, 1.4, 3.3]])
+    return np.concatenate(P), np.concatenate(N), cams
+
+
+def test_l_shaped_room_outline_is_preserved():
+    pts, nrm, cams = l_shaped_room_cloud()
+    fp = extract_floorplan(pts, nrm, UP, camera_centers=cams)
+    check("L room -> one room", fp is not None and len(fp.rooms) == 1,
+          f"{None if fp is None else len(fp.rooms)}")
+    if not fp or not fp.rooms:
+        return
+    rm = fp.rooms[0]
+    check("outline follows the L (6 corners, not 4)", len(rm.poly_world) == 6,
+          f"{len(rm.poly_world)}")
+    check("reported area is the L (~16 m2), not the bounding box (20 m2)",
+          abs(rm.area_m2 - 16.0) < 3.0, f"{rm.area_m2:.1f} m2")
+    # polygon area via the shoelace formula, from the reported outline
+    p = rm.poly_world
+    shoe = 0.5 * abs(float(np.dot(p[:, 0], np.roll(p[:, 1], -1))
+                          - np.dot(p[:, 1], np.roll(p[:, 0], -1))))
+    check("outline polygon area matches the footprint", abs(shoe - rm.area_m2) < 3.0,
+          f"outline {shoe:.1f} vs footprint {rm.area_m2:.1f} m2")
+
+
 def test_two_rooms_split_at_the_doorway():
     pts, nrm, cams = two_room_cloud()
     fp = extract_floorplan(pts, nrm, UP, camera_centers=cams)
@@ -185,10 +228,15 @@ def test_result_dict_has_what_the_schema_adapter_and_renderer_read():
                 "surfaces", "damage", "scope_items"):
         check(f"sub_room carries '{key}'", key in sr)
     poly = sr["polygon"]
-    check("polygon has world_corners for the renderer",
-          isinstance(poly.get("world_corners"), list) and len(poly["world_corners"]) == 4)
-    check("polygon has local corners for the schema adapter",
-          isinstance(poly.get("corners"), list) and len(poly["corners"]) == 4)
+    check("polygon has a real outline for the renderer (>= 4 pts, closed)",
+          isinstance(poly.get("world_corners"), list) and len(poly["world_corners"]) >= 4)
+    check("polygon has matching local corners for the schema adapter",
+          isinstance(poly.get("corners"), list)
+          and len(poly["corners"]) == len(poly["world_corners"]))
+    check("outline edge count matches wall_lengths",
+          len(poly["wall_lengths"]) == len(poly["world_corners"]))
+    check("a plain rectangular room comes back as ~4 corners",
+          4 <= len(poly["world_corners"]) <= 6, f"{len(poly['world_corners'])}")
 
 
 if __name__ == "__main__":
