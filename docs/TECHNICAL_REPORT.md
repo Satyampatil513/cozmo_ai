@@ -249,11 +249,9 @@ These are substantial, well-populated clusters (5–88 frames each), not noise-l
 A 1.3 m ceiling-height spread across "rooms" of one capture is not physically plausible for a
 normal residential space — it is the signature of the bed-as-floor failure (§ above)
 recurring on sub-regions of a large, cluttered, or open-plan space, not 9 verified rooms. No
-ground truth exists for this property to confirm either reading. What IS clear: density-based
-segmentation has no equivalent of the camera-height plausibility gate that already exists for
-individual frame placement, and should — a ceiling-height-spread check across proposed
-sub-rooms, analogous to `MAX_CAMERA_HEIGHT_DEV_M`, would catch this class of over-segmentation
-before it reaches a confident 9-room stitch.
+ground truth exists for this property to confirm either reading. **This is why the LiDAR tier
+no longer uses trajectory-density segmentation or the plane-per-wall polygon at all** — §9
+replaces both with a wall-line arrangement built from the cloud itself.
 
 ---
 
@@ -306,13 +304,66 @@ correct wall-vs-ceiling surface assignment.
 
 ---
 
-## 9. Status against the brief
+## 9. LiDAR: floor plan straight from the cloud
+
+The two LiDAR failures in §7 — the polygon returning `None` on any walkthrough, and
+trajectory-density carving one scan into 9 phantom rooms — are both the wrong tool for a
+dense range cloud that carries a pose on nearly every frame. Such a cloud *has* the walls,
+as vertical columns of points. `pipeline/geometry/floorplan.py` is the replacement and is
+now the LiDAR measurement path in `measure.py` (`mode: "floorplan"`); photo and video are
+untouched.
+
+**The raster is already a floor plan.** Fit one floor plane and one ceiling plane, take the
+points between them, drop them onto the floor, rasterise at 4 cm: a cell with a tall stack of
+points is a wall. The benchmark `.r3d` is one clean room; `single_scan_with_ceiling` is an
+unmistakable ~6-room flat around a cross-shaped corridor.
+
+![Wall occupancy raster and camera path, for a single-room and a multi-room LiDAR capture](report_assets/15_lidar_raster.png)
+
+**Room carving is the wall-line arrangement** (Ochmann et al.; the method point-cloud →
+floor-plan tools use), not trajectory density. Extract wall centre-lines by Hough, snap them
+onto a few dominant orientations, extend them across the plan so they cut it into faces, then
+greedily merge any two faces whose separating line carries little real wall evidence — the
+graph-cut smoothness term done greedily: *it only costs to put a wall between two faces where
+a wall was actually seen*. A doorway (a short gap in an otherwise solid wall) keeps two rooms
+apart; an extended line with nothing under it, or a wide opening, does not. Each room is then
+reported as its own outline, snapped to those wall lines and squared where the edges run
+near-axis — not a bounding box.
+
+**3D** is the same room polygons extruded floor-to-ceiling, each to its own measured height:
+
+![Pipeline room polygons extruded to each room's ceiling height](report_assets/16_lidar_3d.png)
+
+**The generated plan.** The `.r3d` benchmark closes as **one room, 4.28 × 5.16 m, ceiling
+2.70 m against 2.74 m tape (−1.5 %)** — where the old polygon path produced nothing at all:
+
+![Generated floor plan, benchmark .r3d](report_assets/17_lidar_plan_r3d.png)
+
+`single_scan_with_ceiling` resolves **four rooms, each with its own ceiling height** (2.34 /
+2.96 / 3.08 / 3.08 m), plus one flagged ~100 m² region — the corridor and the rooms it links,
+which have too few internal walls for the arrangement to cut:
+
+![Generated floor plan, single_scan_with_ceiling](report_assets/18_lidar_plan_scan.png)
+
+**What is still wrong, stated:** the corridor/hall is absorbed into the nearest room rather
+than named as its own region, so it reads as unlabelled space in the plan; the large open
+area does not resolve and is drawn as one flagged blob; and the wall-snap pulls a room's
+outline ~5–15 % inside its raw cell footprint. Validated on synthetic multi-room clouds
+(`tests/test_floorplan.py`, including a furniture-block-in-a-room case the earlier
+distance-transform method split in two); the real captures have no floor-plan ground truth,
+so the room dimensions above are unscored. Reproduce:
+`python benchmark/scripts/lidar_plan_figures.py` and `python run.py <capture> --tier lidar`.
+
+---
+
+## 10. Status against the brief
 
 | | Status |
 |---|---|
 | All 3 tiers, one command, one output contract | Done |
 | Photo multi-view registration, cycle-verified | Done |
-| Video/LiDAR multi-room stitching + blueprint | Built, synthetic-validated; no real multi-room result has closed yet (§7) |
+| Video multi-room stitching + blueprint | Built, synthetic-validated; no real video multi-room result has closed yet (§7) |
+| LiDAR multi-room floor plan | Built — wall-line arrangement from the cloud (§9). Benchmark `.r3d` closes as one room, ceiling −1.5% vs tape; a real multi-room scan resolves 4 rooms + 1 flagged unresolved region. Room dimensions unscored (no floor-plan ground truth) |
 | Drift accountability, on/off ablation | Done — `benchmark/scripts/ablation.py`, synthetic: 14.1 cm shared-wall gap "poses as-is" → 0.0 cm corrected (§4) |
 | Fix loop, declared and shipped | Done |
 | Ceiling / wall gates | Fail — root cause identified, not a mystery |
