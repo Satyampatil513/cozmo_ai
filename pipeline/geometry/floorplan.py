@@ -78,6 +78,9 @@ CEIL_MIN_M, CEIL_MAX_M = 2.0, 4.2        # a room height outside this is not def
 CEIL_MIN_COVERAGE = 0.06        # fraction of a room's footprint that must carry ceiling pts
 CONNECT_GAP_M = 0.40           # two rooms whose boxes sit this close share a doorway
 
+_PALETTE = [(216, 99, 67), (75, 180, 75), (49, 130, 246), (43, 130, 244), (180, 119, 31),
+            (120, 30, 180)]   # BGR, distinct per room on the raster overlay
+
 
 @dataclass
 class PlanRoom:
@@ -143,6 +146,52 @@ class FloorPlan:
     footprint_area_m2: float
     connections: list[dict] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    # raster: the evidence the plan is built on, kept so run.py can save it alongside the
+    # blueprint. Not serialised into result.json (it is an image, not a measurement).
+    wall_raster: np.ndarray | None = None      # (ny, nx) bool, True = wall
+    raster_mn: np.ndarray | None = None        # (2,) world (u, v) of raster cell (1, 1)
+    raster_cell_m: float = CELL_M
+    camera_uv: np.ndarray | None = None        # (N, 2) trajectory in the raster's (u, v)
+    ceiling_height_m: float | None = None
+
+    def render_raster(self, out_png: str, px_per_m: float = 60.0) -> str | None:
+        """Save the wall occupancy raster with the camera path and the resolved room
+        outlines drawn on it - the geometry's own view of the plan, next to the blueprint."""
+        if cv2 is None or self.wall_raster is None:
+            return None
+        ny, nx = self.wall_raster.shape
+        cell = self.raster_cell_m
+        scale = max(1.0, px_per_m * cell)
+        H, W = int(ny * scale), int(nx * scale)
+        canvas_w = max(W, 620)
+        img = np.full((H + 46, canvas_w, 3), (250, 250, 250), np.uint8)
+        wall = cv2.resize(self.wall_raster.astype(np.uint8) * 255, (W, H),
+                          interpolation=cv2.INTER_NEAREST)[::-1]     # flip so v reads upward
+        pane = img[:H, :W]
+        pane[wall > 127] = (40, 40, 40)
+
+        def to_px(uv):
+            x = (uv[0] - self.raster_mn[0]) / cell * scale
+            y = H - (uv[1] - self.raster_mn[1]) / cell * scale
+            return int(round(x)), int(round(y))
+
+        for i, rm in enumerate(self.rooms):
+            col = _PALETTE[i % len(_PALETTE)]
+            pts = np.array([to_px(p) for p in rm.poly_world], np.int32)
+            cv2.polylines(img, [pts], True, col, 2, cv2.LINE_AA)
+        if self.camera_uv is not None:
+            for uv in self.camera_uv:
+                cv2.circle(img, to_px(uv), 2, (60, 60, 220), -1, cv2.LINE_AA)
+
+        ch = f"{self.ceiling_height_m:.2f} m" if self.ceiling_height_m else "abstained"
+        cv2.putText(img, f"wall raster {cell*100:.0f} cm/cell   ceiling {ch}   "
+                    f"plane score {self.selection_score:.2f}   {len(self.rooms)} room(s)   "
+                    f"red = camera path", (10, H + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                    (30, 30, 30), 1, cv2.LINE_AA)
+        import os as _os
+        _os.makedirs(_os.path.dirname(out_png) or ".", exist_ok=True)
+        cv2.imwrite(out_png, img)
+        return out_png
 
     def to_result(self, capture_id: str, tier: str, scale) -> dict:
         subs = [r.to_subroom(tier, scale) for r in self.rooms]
@@ -632,8 +681,14 @@ def extract_floorplan(points: np.ndarray, normals: np.ndarray | None,
                     "has_opening": False, "opening": None,
                 })
 
-    return FloorPlan(rooms=rooms, gravity=g, floor_h=floor_h, selection_score=float(score),
-                     footprint_area_m2=total_area, connections=connections, notes=notes)
+    cam_uv = (np.stack([camera_centers @ e1, camera_centers @ e2], axis=1)
+              if camera_centers is not None and len(camera_centers) else None)
+    return FloorPlan(
+        rooms=rooms, gravity=g, floor_h=floor_h, selection_score=float(score),
+        footprint_area_m2=total_area, connections=connections, notes=notes,
+        wall_raster=wall_raw, raster_mn=mn, raster_cell_m=cell_m, camera_uv=cam_uv,
+        ceiling_height_m=next((r.ceiling_height_m for r in rooms
+                               if r.ceiling_height_m is not None), None))
 
 
 def _room_outline(cell_mask: np.ndarray, mn: np.ndarray, cell_m: float,

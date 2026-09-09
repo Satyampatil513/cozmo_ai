@@ -190,7 +190,8 @@ def _write_debug(frame, pts, nrm, pix, m: dict, room: RoomCapture, debug_dir: st
 
 def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
                  work_px: int = 1024, debug_dir: Optional[str] = None,
-                 photo_mode: str = "per_frame", drift_correction: bool = True) -> dict:
+                 photo_mode: str = "per_frame", drift_correction: bool = True,
+                 out_dir: Optional[str] = None) -> dict:
     """Measure one RoomCapture. Runs depth first where the tier does not supply it.
 
     `photo_mode` selects between the two photo-tier approaches, both runnable on the same raw
@@ -299,6 +300,15 @@ def measure_room(room: RoomCapture, depth_backend=None, cache: bool = True,
                 result["ceiling_height_measurement"] = length_measurement(
                     result["ceiling_height"], room.tier, scale,
                     "floor-to-ceiling plane separation over the room footprint").to_json()
+            # Save the wall occupancy raster the plan is built from, next to the blueprint -
+            # it is the geometry's own evidence and reads as a floor plan in its own right.
+            if out_dir:
+                import os as _os
+                raster_png = _os.path.join(out_dir, f"{room.room_id}_raster.png"
+                                           if len(result.get("sub_rooms", [])) != 1
+                                           else "raster.png")
+                if fp.render_raster(raster_png):
+                    result["raster_image"] = _os.path.basename(raster_png)
             result["seconds"] = round(time.time() - t0, 1)
             return result
         result["floorplan_failed"] = "no floor plane could be fit to the fused cloud"

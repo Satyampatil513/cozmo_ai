@@ -175,7 +175,8 @@ def main() -> int:
                                   debug_dir=os.path.join(args.out, "debug") if args.debug
                                   else None,
                                   photo_mode=args.photo_mode,
-                                  drift_correction=not args.no_drift_correction))
+                                  drift_correction=not args.no_drift_correction,
+                                  out_dir=args.out))
 
     # Photo-tier property stitching: registers every room's photos TOGETHER, not one room at
     # a time, so a photo that incidentally sees across a doorway can connect two rooms - see
@@ -298,6 +299,10 @@ def main() -> int:
         if r.get("multiview_rejected"):
             print(f"      -> {r['multiview_reject_reason']}")
     print(f"wrote {out_path}")
+    for r in rooms:
+        if r.get("raster_image"):
+            print(f"wrote {os.path.join(args.out, r['raster_image'])} "
+                  f"(wall occupancy raster the plan is built from)")
     if args.debug:
         print(f"wrote diagnostic overlays to {os.path.join(args.out, 'debug')}/")
     if blueprint_report is not None:
