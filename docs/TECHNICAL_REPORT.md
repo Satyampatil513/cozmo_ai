@@ -12,22 +12,28 @@ planes fitted to tens of thousands of points — auditable line by line, not a b
 
 ## 1. Architecture
 
-**`capture/`** (tier-specific ingest) → **`geometry/`** (tier-agnostic) → **`output/`**.
+The system is deliberately split into four contracts:
 
-- `capture/`: photo folders / video clip / `.r3d`+Stray → depth (Metric3D v2 for photo &
-  video; sensor-native for LiDAR) → lift to points + normals. Poses come from ARKit (LiDAR),
-  RGB-D odometry (video), or cycle-gated multi-view registration (photo); posed frames fuse
-  to one world cloud.
-- `geometry/` (one code path, branching on *whether a frame carries a pose*, never on the
-  tier): RANSAC planes → merge coplanar → prior-constrained gravity → joint floor/ceiling
-  selection *or abstain* → conservative Manhattan regularisation. Then: ceiling height,
-  wall-pair spans, openings-as-holes; LiDAR adds the wall-line-arrangement floor plan (§9);
-  photo's per-frame path adds colour-anomaly damage → concealed-damage rules → scope items.
-- `output/`: calibrated intervals → JSON (published schema) + rendered plan (+ raster for
-  LiDAR).
+1. **Ingest and lift (`capture/`).** Photo folders and video frames receive Metric3D v2
+  depth; LiDAR receives sensor-native ARKit depth. Every sample becomes a point cloud with
+  normals. ARKit supplies LiDAR poses, RGB-D odometry supplies video poses, and
+  cycle-gated registration supplies optional photo poses.
+2. **Shared measurement core (`geometry/`).** The same geometry code consumes either posed
+  world points or independent frame points. It fits RANSAC planes, merges coplanar patches,
+  applies the gravity prior, selects floor and ceiling jointly, and abstains when that
+  selection is unsafe. It then computes wall spans, ceiling height, and openings as holes
+  in wall support rather than as lifted image boxes.
+3. **Tier-specific extensions.** Posed LiDAR points additionally produce a wall-occupancy
+  raster and wall-snapped room polygons. Photo frames additionally run the damage detector,
+  concealed-damage rules, and scope classification. These extensions do not replace the
+  shared measurements.
+4. **Calibrated output (`output/`).** Residuals become uncertainty intervals, then the
+  published JSON schema and rendered `blueprint.png` are written. LiDAR also writes
+  `raster.png`; debug overlays remain separate from scored output.
 
-Because the split is on poses, not tier name, a video whose odometry fails degrades honestly
-to the per-frame path instead of faking a trajectory.
+The key design decision is the abstraction boundary: geometry branches on whether poses are
+available, not on a tier label. If video odometry fails, it falls back to the independent
+frame path and reports the loss of trajectory evidence instead of fabricating a trajectory.
 
 ---
 
@@ -235,7 +241,7 @@ line with nothing under it does not. Each room is reported as its own outline, s
 those wall lines — not a bounding box. **3D** is those polygons extruded to each room's
 measured ceiling.
 
-![Room polygons extruded to each room's ceiling — benchmark .r3d (one room) and single_scan_with_ceiling](report_assets/16_lidar_3d.png)
+![Room polygons extruded to each room's ceiling: benchmark .r3d and single_scan_with_ceiling](report_assets/16_lidar_3d.png)
 ![Generated 2D floor plan, single_scan_with_ceiling: 4 rooms with ceilings + 1 flagged unresolved region (the black area is corridor absorbed into neighbours)](report_assets/18_lidar_plan_scan.png)
 
 **Results.** The `.r3d` benchmark closes as **one room, 4.28 × 5.16 m, ceiling 2.70 m vs

@@ -1,7 +1,9 @@
-# Reproduction bundle
+# Reproduction and input data
 
-Everything needed to regenerate every number in this repo from raw inputs, on a clean
-machine, offline after setup.
+The Drive ZIP is input data only. It contains `benchmark/raw/` (photos, video, and the
+benchmark `.r3d` scan) plus `benchmark/ground_truth/` (the laser survey and mappings). It
+contains no source code, documentation, generated outputs, model weights, or depth cache.
+The source code and reproduction commands below come from the GitHub repository.
 
 The brief allows cached model outputs "when the cache replays deterministically and the live
 path also runs." Both hold here: depth inference is content-hash cached, and every command
@@ -14,17 +16,25 @@ bundle if you pass that flag.
 
 | Part | Where | In git? |
 |---|---|---|
-| Code, schema, ground truth, harness | this repo | yes |
-| Raw captures (photos, video, `.r3d`) | `benchmark/raw/` tree, delivered alongside the repo | **no** — lived-in home, kept out of a public repo (`.gitignore`) |
+| Code, schema, harness | this repo | yes |
+| Raw captures (photos, video, `.r3d`) | `benchmark/raw/` in the Drive ZIP | **no** — lived-in home, kept out of a public repo (`.gitignore`) |
+| Laser survey and mappings | `benchmark/ground_truth/` in the Drive ZIP | **no** — supplied input data |
 | Depth model weights | fetched by script into `~/.cache` | no — `scripts/fetch_weights.py` |
 
 The repo alone runs the test suite and re-scores the gates from committed ground truth. The
 raw tree is required to regenerate the pipeline's own measurements.
 
-### Unpacking the raw tree
+### Unpacking the input ZIP
 
-Copy the delivered `raw/` contents into `benchmark/raw/`, preserving folder names exactly
-(the photo loader keys on one folder per room):
+Clone the repository, then extract the Drive ZIP at the repository root, preserving the
+`benchmark/raw/` and `benchmark/ground_truth/` paths exactly:
+
+```bash
+git clone <repo> && cd cozmo
+# Extract cozmo_input_data.zip here; it must create benchmark/raw/ and benchmark/ground_truth/
+```
+
+The photo loader keys on one folder per room:
 
 ```
 benchmark/raw/
@@ -154,6 +164,17 @@ the survey supersedes the tape.
 | Reported | Command | Output |
 |---|---|---|
 | photo 608 s / video 358 s / LiDAR 62 s, CPU-only | `report.py --run` | `benchmark_report.md`, "Processing time" |
+
+### LiDAR floor-plan images
+
+| Reported | Command | Output |
+|---|---|---|
+| Wall occupancy and camera-path raster | `python run.py <scan-or-directory> --tier lidar --out out_lidar` | `out_lidar/raster.png` |
+| Wall-snapped room outlines and unresolved regions | same | `out_lidar/blueprint.png` |
+| Report figures from the benchmark and team scans | `python benchmark/scripts/lidar_plan_figures.py` | `docs/report_assets/15_lidar_raster.png`, `docs/report_assets/16_lidar_3d.png`, `docs/report_assets/18_lidar_plan_scan.png` |
+
+The LiDAR run always writes `raster.png` beside `blueprint.png` and `result.json`. The
+figures script is a report-only renderer; it does not change the measurement JSON.
 
 ### Damage (first pass, out of scope)
 
