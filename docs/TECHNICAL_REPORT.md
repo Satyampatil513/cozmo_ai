@@ -12,54 +12,22 @@ planes fitted to tens of thousands of points — auditable line by line, not a b
 
 ## 1. Architecture
 
-```mermaid
-flowchart TD
-    subgraph capture["capture/ (tier-specific ingest)"]
-        P0[photo folders] --> P1[load + EXIF K]
-        V0[video clip] --> V1[sample + odometry]
-        L0[".r3d / stray zip"] --> L1[unzip + poses]
-        P1 --> P2[metric depth]
-        V1 --> V2[metric depth]
-        L1 --> L2[LiDAR depth]
-    end
+**`capture/`** (tier-specific ingest) → **`geometry/`** (tier-agnostic) → **`output/`**.
 
-    P2 --> LIFT[lift to points + normals]
-    V2 --> LIFT
-    L2 --> LIFT
+- `capture/`: photo folders / video clip / `.r3d`+Stray → depth (Metric3D v2 for photo &
+  video; sensor-native for LiDAR) → lift to points + normals. Poses come from ARKit (LiDAR),
+  RGB-D odometry (video), or cycle-gated multi-view registration (photo); posed frames fuse
+  to one world cloud.
+- `geometry/` (one code path, branching on *whether a frame carries a pose*, never on the
+  tier): RANSAC planes → merge coplanar → prior-constrained gravity → joint floor/ceiling
+  selection *or abstain* → conservative Manhattan regularisation. Then: ceiling height,
+  wall-pair spans, openings-as-holes; LiDAR adds the wall-line-arrangement floor plan (§9);
+  photo's per-frame path adds colour-anomaly damage → concealed-damage rules → scope items.
+- `output/`: calibrated intervals → JSON (published schema) + rendered plan (+ raster for
+  LiDAR).
 
-    LIFT --> POSES{poses?}
-    POSES -->|yes| FUSE[fuse to one world cloud]
-    POSES -->|no| GEO
-    FUSE --> GEO
-
-    subgraph geometry["geometry/ (tier-agnostic)"]
-        GEO["RANSAC planes → merge coplanar"] --> GRAV[gravity: prior-constrained]
-        GRAV --> SEL[joint floor/ceiling selection, or abstain]
-        SEL --> MAN[conservative Manhattan regularisation]
-    end
-
-    MAN --> CH[ceiling height]
-    MAN --> WP[wall-pair spans]
-    MAN --> OP[openings as holes]
-    MAN --> DMG["photo per-frame only: colour-anomaly damage → concealed-damage rules → scope items"]
-
-    MAN --> SEG["video/lidar only: doorway-crossing segmentation → per-room walls"]
-    SEG --> ADJ["adjacency + drift correction → blueprint"]
-
-    CH --> OUT
-    WP --> OUT
-    OP --> OUT
-    DMG --> OUT
-    ADJ --> OUT
-
-    subgraph output["output/"]
-        OUT["intervals → JSON + PNG/SVG plan"]
-    end
-```
-
-Everything below `capture/` is **tier-agnostic** — it branches on whether a frame carries a
-pose, never on the tier name, so a video whose odometry fails degrades honestly to the
-per-frame path instead of pretending it has a trajectory.
+Because the split is on poses, not tier name, a video whose odometry fails degrades honestly
+to the per-frame path instead of faking a trajectory.
 
 ---
 
@@ -75,58 +43,47 @@ per-frame path instead of pretending it has a trajectory.
 
 ## 3. Single-frame geometry
 
-One photo, four things happen at once: metric depth, plane extraction, and a
-floor/ceiling/wall classification driven by a gravity prior (the protocol asks the operator to
-hold the phone level) — never by "the largest plane," which was tried and produced 2–22 cm
-ceiling heights on real frames.
+One photo: metric depth, plane extraction, and a floor/ceiling/wall classification driven by
+a gravity prior (the protocol asks the operator to hold the phone level) — never by "the
+largest plane," which was tried and gave 2–22 cm ceiling heights on real frames.
 
 ![Input, depth, planes, classification](report_assets/01_single_frame_geometry.png)
 
-*Corners* come from intersecting adjacent wall planes with the floor, kept or rejected with a
-stated reason — but a corner is only as correct as the floor it's intersected against, and
-closing corners into a full room polygon is currently fragile: across every real capture this
-session, exactly one room ever closed a polygon at all, and its own floor turned out to be a
-bed (§7 — the same failure is not a separate bug, it is the same one shown twice). **The
-dimension that is actually reliable is wall-pair separation** — the distance between two
-opposite wall planes, needing no closed polygon and no correct floor: LiDAR wall pair
-**3.60 m vs 3.54 m tape, +1.8%**. Corners and the polygon remain useful for area and adjacency
-once the floor is right; they are not yet the load-bearing measurement.
+*Corners* come from intersecting adjacent wall planes with the floor — but a corner is only
+as correct as the floor it is cut against, and closing corners into a full polygon is
+fragile: across every real capture this session, exactly one room closed a polygon at all,
+and its floor turned out to be a bed (§7). **The reliable dimension is wall-pair separation**
+— the distance between two opposite wall planes, needing no closed polygon and no correct
+floor: LiDAR **3.60 m vs 3.54 m tape, +1.8%**.
 
-*Openings* are found as holes in a wall's own point support — not a lifted 2D detection box,
-which inherits depth error exactly where depth is worst. The door here is clean; the window's
-height overshoots the true glass into the sill ledge below it, and the detector's own
-confidence (0.69, against 0.81 for the door) already says so:
-
-![Detected door (clean) and window (height overshoots into the sill), correctly projected onto the source photo](report_assets/05_openings.png)
+*Openings* are found as holes in a wall's own point support, not a lifted 2D box that
+inherits depth error where depth is worst. On the benchmark: the door comes out clean
+(width +1.9% vs tape, confidence 0.81); the window's height overshoots the glass into the
+sill ledge and its own confidence (0.69) already says so.
 
 ---
 
 ## 4. Multi-view: registration, verification, fusion
 
-Unposed photos of one room are registered into a shared frame via SIFT correspondences, then
-**cycle-consistency gated** before any pose is trusted. A pairwise fit can look perfect (a few
-centimetres of residual) while the *composed* pose is wrong by metres — only a closed loop
-catches that, and a spanning tree has no loops by construction. Every edge the tree doesn't use
-is exactly the evidence needed to audit the edges it does.
+Unposed photos of one room are registered via SIFT correspondences, then **cycle-consistency
+gated** before any pose is trusted. A pairwise fit can look perfect (centimetres of residual)
+while the *composed* pose is wrong by metres — only a closed loop catches that, and a
+spanning tree has none. Every edge the tree does not use is the evidence to audit the ones it
+does. When it passes, the independently-captured photos land on the *same* wall lines, not
+disagreeing slabs.
 
 ![Overlap graph: kept, cycle-cut, and implausible-height edges](report_assets/06_multiview_graph.png)
 
-The result, when it passes: six independently-captured photos landing on the *same* wall
-lines, not six disagreeing slabs — the direct visual test of whether registration is real.
-
-![Fused cloud, coloured by source photo](report_assets/07_multiview_fusion.png)
-
-**Video/LiDAR stitching** (multi-room) reuses this same fused-cloud machinery per detected
-room, then adds: **doorway-crossing segmentation** (a room change is confirmed by the scene
-changing sharply — SIFT similarity dropping against the clip's own distribution — needing no
-pose); **re-identification** (merge a segment back into an earlier one only if its walls
-coincide *and* its centroid does — wall-matching alone is fooled by two rooms sharing a
-corridor wall-line, a real bug fixed here); and **plane-anchored drift correction**, which
-nudges each room's *position* to a shared floor level and along matched walls. The brief's
-on/off ablation (`benchmark/scripts/ablation.py`): on a synthetic two-room flat with injected
-drift, "poses used as-is" leaves a **14.1 cm** gap between the two copies of the shared wall;
-correction closes it to **0.0 cm**. No real capture has closed a multi-room stitch to run
-this on live (§7), so it is synthetic ground truth.
+**Video/LiDAR stitching** (multi-room) reuses this fused-cloud machinery per detected room,
+then adds: **doorway-crossing segmentation** (a room change confirmed by the scene changing
+sharply — SIFT similarity dropping against the clip's own distribution — needing no pose);
+**re-identification** (merge a segment back only if its walls *and* centroid coincide —
+wall-matching alone is fooled by two rooms sharing a corridor wall-line, a real bug fixed
+here); and **plane-anchored drift correction**, which nudges each room's *position* to a
+shared floor level and along matched walls. The brief's on/off ablation
+(`benchmark/scripts/ablation.py`): on a synthetic two-room flat with injected drift, "poses
+as-is" leaves a **14.1 cm** gap between the two copies of the shared wall; correction closes
+it to **0.0 cm**. No real capture has closed a multi-room stitch to run this on live (§7).
 
 **Photo-tier property stitching** needed no separate protocol: the same cycle-gated
 registration, run on all 28 photos of the 5-room capture at once, lets any incidental
@@ -188,13 +145,10 @@ never in frame; the bed genuinely is the lowest surface in that cloud.
 
 ![Bed classified as floor: reported ceiling 2.29 m against 2.64 m true](report_assets/02_failure_bed_as_floor.png)
 
-The same failure propagates downstream: corner-finding and the room polygon are themselves
-correct, but a corner intersected against the bed is a corner at bed height, and a "closed
-polygon" over the bed reports a ceiling 33 cm short of true. (An earlier draft of this report
-used the polygon actually closing as a *success* example without checking which floor it had
-closed against — this is that correction.)
-
-![The "closed" polygon: area and ceiling height both computed from the bed](report_assets/11_bed_as_floor_polygon.jpg)
+The same failure propagates: a corner intersected against the bed is a corner at bed height,
+and a "closed polygon" over the bed reports a ceiling 33 cm short of true. (An earlier draft
+used that closing polygon as a *success* example without checking which floor it had closed
+against — this is the correction.)
 
 **The room polygon fails when a capture spills into the next space.** `select_room_walls`
 requires nothing behind a wall; a doorway lets the sensor see past it, so nothing qualifies.
@@ -213,20 +167,12 @@ capture, 4 of 80 on the second (longer, more room changes). A broken link now re
 the last posed frame for 15 frames before giving up — a real fix, verified — but does not
 fully solve sparse coverage on a long multi-room walk.
 
-**Trajectory-density segmentation over-segments a large or complex real space.** Re-running
-the team-supplied LiDAR capture through the current pipeline (ARKit poses nearly every frame,
-so doorway-crossing detection never applies — no RGB is decoded for that tier) stitched it
-into **9 sub-rooms** with reported ceiling heights from **1.79 m to 3.08 m**, a 1.3 m spread.
-These are substantial, well-populated clusters (5–88 frames each), not noise-level slivers:
-
-![Camera trajectory branches into 9 clusters; ceiling height is not consistent across them](report_assets/13_lidar_oversegmentation.png)
-
-A 1.3 m ceiling-height spread across "rooms" of one capture is not physically plausible for a
-normal residential space — it is the signature of the bed-as-floor failure (§ above)
-recurring on sub-regions of a large, cluttered, or open-plan space, not 9 verified rooms. No
-ground truth exists for this property to confirm either reading. **This is why the LiDAR tier
-no longer uses trajectory-density segmentation or the plane-per-wall polygon at all** — §9
-replaces both with a wall-line arrangement built from the cloud itself.
+**Trajectory-density segmentation over-segmented a large real space.** The team-supplied
+LiDAR capture (ARKit poses nearly every frame, no RGB decoded) stitched into **9 sub-rooms**
+with ceiling heights from **1.79 m to 3.08 m** — a 1.3 m spread across "rooms" of one scan,
+not physically plausible. **This is why the LiDAR tier no longer uses trajectory-density
+segmentation or the plane-per-wall polygon at all** — §9 replaces both with a wall-line
+arrangement built from the cloud.
 
 ---
 
@@ -289,8 +235,8 @@ line with nothing under it does not. Each room is reported as its own outline, s
 those wall lines — not a bounding box. **3D** is those polygons extruded to each room's
 measured ceiling.
 
-![Left: room polygons extruded floor-to-ceiling. Right: generated plan, single_scan_with_ceiling — 4 rooms + 1 flagged unresolved region](report_assets/16_lidar_3d.png)
-![Generated floor plan, single_scan_with_ceiling](report_assets/18_lidar_plan_scan.png)
+![Room polygons extruded to each room's ceiling — benchmark .r3d (one room) and single_scan_with_ceiling](report_assets/16_lidar_3d.png)
+![Generated 2D floor plan, single_scan_with_ceiling: 4 rooms with ceilings + 1 flagged unresolved region (the black area is corridor absorbed into neighbours)](report_assets/18_lidar_plan_scan.png)
 
 **Results.** The `.r3d` benchmark closes as **one room, 4.28 × 5.16 m, ceiling 2.70 m vs
 2.74 m tape (−1.5 %)** — where the old polygon path produced nothing.
@@ -318,7 +264,7 @@ split); the real captures have no floor-plan ground truth, so the dimensions are
 | Fix loop, declared and shipped | Done |
 | Ceiling / wall gates | Fail — root cause identified, not a mystery |
 | Calibration, scored per tier | Done — `benchmark/scripts/calibrate.py`. Photo intervals cover ~50% at nominal 95%: bias-dominated, not an interval-width problem |
-| Repeatability gate | **Fail — unrepeatable.** Checked at the video tier: two independent walkthroughs of the same property (IMG_0460, IMG_0462) agree only on ceiling height — the one scalar both produce — and it disagrees by **18.8 cm** (2.830 m vs 3.018 m), against a 1 cm gate. Not repeatable-but-biased; genuinely unrepeatable. Neither clip closes a polygon or resolves per-room correspondence (§7 — odometry posts 14–16 / 4 of their frames), so there are no per-wall lengths to compare. |
+| Repeatability gate | **Fail — unrepeatable.** Two video walkthroughs of the same property agree only on ceiling height (the one scalar both produce) and it disagrees by **18.8 cm** (2.830 vs 3.018 m) against a 1 cm gate. Neither clip closes a polygon or resolves per-room correspondence (§7), so there are no per-wall lengths to compare. |
 | Head-to-head vs incumbent | Out of scope (confirmed with the team) |
 | Damage detection | First pass built, wired on the per-frame path and emitted in the schema output; synthetic-tested and run against real Room 1 (§8). Unfitted thresholds — out of scope for scoring |
 
