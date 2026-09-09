@@ -116,44 +116,25 @@ lines, not six disagreeing slabs — the direct visual test of whether registrat
 
 ![Fused cloud, coloured by source photo](report_assets/07_multiview_fusion.png)
 
-Recovered camera positions are a free sanity check on their own — real handheld captures sit
-within a metre or two of each other, never scattered across a room:
-
-![Recovered camera positions, top-down](report_assets/08_camera_positions.png)
-
 **Video/LiDAR stitching** (multi-room) reuses this same fused-cloud machinery per detected
-room, then adds:
-- **Doorway-crossing segmentation** — a room change is confirmed by the *scene* changing
-  sharply (SIFT similarity dropping against the clip's own distribution), not by inferring it
-  from camera density. This needs no pose, so it survives frames where odometry fails.
-- **Re-identification** — a segment is merged back into an earlier one if its walls coincide
-  *and* its centroid sits in the same place (wall-matching alone is fooled by two different
-  rooms sharing a corridor wall-line — found and fixed as a real bug, not hypothesised).
-- **Plane-anchored drift correction** — each room's *position* (not its own shape) is nudged
-  vertically to a shared floor level and horizontally along matched walls. The brief's on/off
-  ablation is `benchmark/scripts/ablation.py`: on a synthetic two-room flat with a known
-  shared wall and injected drift, "poses used as-is" leaves a **14.1 cm** gap between the two
-  rooms' copies of that wall; correction closes it to **0.0 cm**, and the no-drift control row
-  confirms it is a near no-op when there is nothing to correct. No real capture has closed a
-  multi-room stitch to run this on (§7), so it is synthetic ground truth.
+room, then adds: **doorway-crossing segmentation** (a room change is confirmed by the scene
+changing sharply — SIFT similarity dropping against the clip's own distribution — needing no
+pose); **re-identification** (merge a segment back into an earlier one only if its walls
+coincide *and* its centroid does — wall-matching alone is fooled by two rooms sharing a
+corridor wall-line, a real bug fixed here); and **plane-anchored drift correction**, which
+nudges each room's *position* to a shared floor level and along matched walls. The brief's
+on/off ablation (`benchmark/scripts/ablation.py`): on a synthetic two-room flat with injected
+drift, "poses used as-is" leaves a **14.1 cm** gap between the two copies of the shared wall;
+correction closes it to **0.0 cm**. No real capture has closed a multi-room stitch to run
+this on live (§7), so it is synthetic ground truth.
 
-**Photo-tier property stitching** turned out not to need a separate capture protocol. The
-same cycle-gated registration above never assumed its photos all came from one room — that
-was simply the only thing anyone had called it with. Running it on **every photo from every
-room at once** lets any real cross-room overlap (a photo that incidentally sees through a
-doorway) supply the correspondence a deliberate doorway-pair shot would have. Run on the real
-5-room, 28-photo capture:
-
-![Property-wide registration: one room fully connected (white), every cross-room edge correctly rejected](report_assets/12_property_wide_graph.png)
-
-Only one room's photos ever connect; every cross-room edge is rejected — twice for an
-implausible camera height, twice for a depth-scale ratio outside sanity (1.54×, 1.76×). This
-capture was never shot with cross-room correspondence in mind, so refusal is the *correct*
-answer, not a shortfall: the same gates that catch false positives on video catch this too.
-That the mechanism itself works is checked separately — two synthetic photos in different
-rooms given genuinely shared content produce a clean match (258 inliers, 0 cm residual,
-depth-scale ratio 1.00) — so the gate is proven able to *accept* good cross-room evidence, not
-only reject bad.
+**Photo-tier property stitching** needed no separate protocol: the same cycle-gated
+registration, run on all 28 photos of the 5-room capture at once, lets any incidental
+cross-room overlap supply the correspondence. On this capture only one room's photos connect
+and every cross-room edge is correctly rejected (implausible camera height ×2, depth-scale
+ratio 1.54× / 1.76× ×2) — the capture was never shot for cross-room overlap, so refusal is
+the correct answer. That the gate can still *accept* good cross-room evidence is checked on
+synthetic pairs with genuine shared content (258 inliers, 0 cm residual).
 
 ---
 
@@ -207,31 +188,25 @@ never in frame; the bed genuinely is the lowest surface in that cloud.
 
 ![Bed classified as floor: reported ceiling 2.29 m against 2.64 m true](report_assets/02_failure_bed_as_floor.png)
 
-The same failure, not a different one, propagates downstream: the corner-finding and
-room-polygon code are themselves correct — given a floor, they intersect walls against it and
-close a polygon exactly as designed — but a corner intersected against the bed is a corner at
-bed height, and a "closed polygon" over the bed reports a ceiling 33 cm short of true. (An
-earlier draft of this report used these two images as a *success* example, on the strength of
-the polygon actually closing, without checking which floor it had closed against. It hadn't
-checked far enough — this is that correction.)
+The same failure propagates downstream: corner-finding and the room polygon are themselves
+correct, but a corner intersected against the bed is a corner at bed height, and a "closed
+polygon" over the bed reports a ceiling 33 cm short of true. (An earlier draft of this report
+used the polygon actually closing as a *success* example without checking which floor it had
+closed against — this is that correction.)
 
-![The "accepted" corner sits at bed height, not floor height](report_assets/10_bed_as_floor_corners.jpg)
 ![The "closed" polygon: area and ceiling height both computed from the bed](report_assets/11_bed_as_floor_polygon.jpg)
 
 **The room polygon fails when a capture spills into the next space.** `select_room_walls`
 requires nothing behind a wall; a doorway lets the sensor see past it, so nothing qualifies.
-Wall-pair separation exists specifically because it needs no closed polygon.
+Wall-pair separation exists specifically because it needs no closed polygon; for LiDAR, §9
+replaces the polygon entirely.
 
-![No polygon closes on a capture that sees past its own walls](report_assets/09_lidar_room_failure.png)
-
-**Doorway-crossing segmentation did not fire on the second real video capture**, despite a
-confirmed multi-room walkthrough (checked by hand: living area → hallway → bedroom). Root
-cause, measured rather than guessed: real handheld footage has a noisy, right-skewed
-frame-similarity distribution (median 0.089, MAD 0.095) — the threshold
-`median − 2.5·MAD` computes to **−0.148**, below zero, so no pair can ever be flagged. The
-method is validated end-to-end on synthetic data (21/21 checks) and correctly declines to
-fabricate rooms rather than guess wrong; it needs a threshold that can't go negative on a
-noisy real trace, not a redesign.
+**Doorway-crossing segmentation did not fire on the second real video capture** despite a
+confirmed multi-room walkthrough. Root cause, measured: real handheld footage has a noisy,
+right-skewed frame-similarity distribution (median 0.089, MAD 0.095), so the threshold
+`median − 2.5·MAD` computes to **−0.148** — below zero, so no pair can ever be flagged. The
+method is synthetic-validated (21/21) and declines to fabricate rooms rather than guess; it
+needs a threshold that cannot go negative, not a redesign.
 
 **Video odometry coverage degrades on a hard walk.** 14 of 60 frames posed on the first
 capture, 4 of 80 on the second (longer, more room changes). A broken link now retries against
@@ -257,102 +232,77 @@ replaces both with a wall-line arrangement built from the cloud itself.
 
 ## 8. Damage detection: first pass
 
-`pipeline/damage/` was three `NotImplementedError` stubs. It is now a working first pass —
-detection, concealed-damage rules, scope line items — unit-tested on synthetic damage
-(`tests/test_damage.py`, 8 checks). It runs on the **per-frame path** (photo tier, where the
-source RGB and a per-point pixel mapping exist) and its regions, concealed-damage flags and
-scope items are emitted in the schema output. No damage was staged and per-surface damage
-scoring is out of scope for this submission, so the thresholds are unfitted defaults and the
-first pass below is shown for what the approach looks like, not as a scored result.
+`pipeline/damage/` was three `NotImplementedError` stubs; it is now a working first pass —
+detection, concealed-damage rules, scope line items — unit-tested (`tests/test_damage.py`, 8
+checks) and emitted in the schema output on the per-frame (photo) path. No damage was staged
+and damage scoring is out of scope for this submission, so the thresholds are unfitted
+defaults; this shows what the approach looks like, not a scored result.
 
-**Method.** Detection runs in image space — a stain or a spalled patch is a colour anomaly,
-not something depth shows — but every reported extent is metric. Each region is rasterised
-onto its wall plane in the wall's own `(u, v)` frame, the same `_wall_frame` axes `openings.py`
-uses to turn a hole into a width and a height. A cell is anomalous when its sampled colour
-deviates from *that wall's own median colour* by more than `4·MAD` (floored at 8/255), so a
-beige wall and a white wall are each judged on their own distribution rather than an absolute
-RGB threshold. Class is aspect-ratio only: long/short ≥ 4 → `crack`, else `water_stain`. The
-concealed-damage rules then fire at most one match per region and name it.
+**Method.** Detection is in image space (a stain is a colour anomaly, not something depth
+shows) but the extent is metric — each region is rasterised onto its wall plane in the same
+`(u, v)` frame `openings.py` uses. A cell is anomalous when its colour deviates from *that
+wall's own median* by more than `4·MAD` (so a beige wall and a white wall are each judged on
+their own distribution). Class is aspect-ratio only (`crack` vs `water_stain`); the
+concealed-damage rules then fire at most one match and name it.
 
-**Run against Room 1.** Room 1 carries no *staged* damage — but it turns out to have
-extensive *real* damp damage: a band of blown, spalling plaster along the skirting on both
-sides of the bathroom door, plus a water stain on the ceiling around the fan. Six photos,
-unfitted thresholds, no ground truth:
+**Run against Room 1**, which carries no staged damage but has extensive real damp damage —
+spalling plaster along the skirting either side of the bathroom door, and a ceiling water
+stain around the fan:
 
 ![First-pass damage detector on Room 1: red = classified crack, blue = classified water_stain](report_assets/14_damage_room1.png)
 
-| | |
-|---|---|
-| Regions flagged | 20 across 6 frames (14 `water_stain`, 6 `crack`) |
-| Clean frames | 1 of 6 (IMG_0445 — no false positives) |
-| Concealed-damage rules fired | 2, both `CONCEAL-WATER-02` (IMG_0444) |
-
-**Right:** on IMG_0446 two regions land squarely on the real spalled-plaster band at the base
-of the wall, both sides of the doorway — and that low-wall geometry is exactly what triggers
-`CONCEAL-WATER-02`, the correct rule for what is physically there.
-
-**Wrong:** class is noisy (the same band is `crack` in two frames, `water_stain` in a third —
-in IMG_0439 that misclassification stops `CONCEAL-WATER-02` firing); high false-positive load
-(poster collage, framed mirror, guitar, patterned bedsheet — any hard colour edge on a plane
-RANSAC accepted as a wall); no cross-frame association, so the one damp band is counted 2–4
-times; and height-above-floor runs −0.02 m to 2.65 m on the per-frame path, so the
-`max_height_m = 0.5` rule gate cannot defend itself.
-
-**Before it is trustworthy:** staged damage with ground truth to fit the colour threshold and
-class boundary, a texture filter to reject posters and fabric, cross-frame association, and
-correct wall-vs-ceiling surface assignment.
+20 regions across 6 frames (1 frame clean); 2 concealed-damage rules fired, both
+`CONCEAL-WATER-02`. **Right:** on IMG_0446 two regions land on the real spalled-plaster band,
+and that low-wall geometry is exactly what `CONCEAL-WATER-02` exists for. **Wrong:** class is
+noisy (same band `crack` in two frames, `water_stain` in a third); high false-positive load
+(poster collage, mirror, guitar, patterned bedsheet — any hard colour edge on a wall plane);
+no cross-frame association; height-above-floor runs −0.02 to 2.65 m on the per-frame path, so
+the rule's `max_height_m` gate cannot defend itself. **Needs:** staged ground truth to fit
+the threshold and class boundary, a texture filter, cross-frame association, and correct
+wall-vs-ceiling surface assignment.
 
 ---
 
 ## 9. LiDAR: floor plan straight from the cloud
 
-The two LiDAR failures in §7 — the polygon returning `None` on any walkthrough, and
-trajectory-density carving one scan into 9 phantom rooms — are both the wrong tool for a
-dense range cloud that carries a pose on nearly every frame. Such a cloud *has* the walls,
-as vertical columns of points. `pipeline/geometry/floorplan.py` is the replacement and is
-now the LiDAR measurement path in `measure.py` (`mode: "floorplan"`); photo and video are
-untouched.
+Both LiDAR failures in §7 — the polygon returning `None` on a walkthrough, and
+trajectory-density carving one scan into 9 phantom rooms — are the wrong tool for a dense
+range cloud with a pose on nearly every frame. Such a cloud *has* the walls, as vertical
+columns of points. `pipeline/geometry/floorplan.py` is the replacement and is now the LiDAR
+path in `measure.py`; photo and video are untouched. Each LiDAR run writes `raster.png` and
+`blueprint.png` next to `result.json`.
 
-**The raster is already a floor plan.** Fit one floor plane and one ceiling plane, take the
-points between them, drop them onto the floor, rasterise at 4 cm: a cell with a tall stack of
-points is a wall. The benchmark `.r3d` is one clean room; `single_scan_with_ceiling` is an
+**The raster is already a floor plan.** Fit one floor and one ceiling plane, take the points
+between them, drop them onto the floor, rasterise at 4 cm: a cell with a tall stack of points
+is a wall. The benchmark `.r3d` is one clean room; `single_scan_with_ceiling` is an
 unmistakable ~6-room flat around a cross-shaped corridor.
 
-![Wall occupancy raster and camera path, for a single-room and a multi-room LiDAR capture](report_assets/15_lidar_raster.png)
+![Wall occupancy raster and camera path: a single-room and a multi-room LiDAR capture](report_assets/15_lidar_raster.png)
 
 **Room carving is the wall-line arrangement** (Ochmann et al.; the method point-cloud →
 floor-plan tools use), not trajectory density. Extract wall centre-lines by Hough, snap them
-onto a few dominant orientations, extend them across the plan so they cut it into faces, then
+to a few dominant orientations, extend them across the plan so they cut it into faces, then
 greedily merge any two faces whose separating line carries little real wall evidence — the
 graph-cut smoothness term done greedily: *it only costs to put a wall between two faces where
-a wall was actually seen*. A doorway (a short gap in an otherwise solid wall) keeps two rooms
-apart; an extended line with nothing under it, or a wide opening, does not. Each room is then
-reported as its own outline, snapped to those wall lines and squared where the edges run
-near-axis — not a bounding box.
+a wall was seen*. A doorway (a short gap in a solid wall) keeps two rooms apart; an extended
+line with nothing under it does not. Each room is reported as its own outline, snapped to
+those wall lines — not a bounding box. **3D** is those polygons extruded to each room's
+measured ceiling.
 
-**3D** is the same room polygons extruded floor-to-ceiling, each to its own measured height:
-
-![Pipeline room polygons extruded to each room's ceiling height](report_assets/16_lidar_3d.png)
-
-**The generated plan.** The `.r3d` benchmark closes as **one room, 4.28 × 5.16 m, ceiling
-2.70 m against 2.74 m tape (−1.5 %)** — where the old polygon path produced nothing at all:
-
-![Generated floor plan, benchmark .r3d](report_assets/17_lidar_plan_r3d.png)
-
-`single_scan_with_ceiling` resolves **four rooms, each with its own ceiling height** (2.34 /
-2.96 / 3.08 / 3.08 m), plus one flagged ~100 m² region — the corridor and the rooms it links,
-which have too few internal walls for the arrangement to cut:
-
+![Left: room polygons extruded floor-to-ceiling. Right: generated plan, single_scan_with_ceiling — 4 rooms + 1 flagged unresolved region](report_assets/16_lidar_3d.png)
 ![Generated floor plan, single_scan_with_ceiling](report_assets/18_lidar_plan_scan.png)
 
-**What is still wrong, stated:** the corridor/hall is absorbed into the nearest room rather
-than named as its own region, so it reads as unlabelled space in the plan; the large open
-area does not resolve and is drawn as one flagged blob; and the wall-snap pulls a room's
-outline ~5–15 % inside its raw cell footprint. Validated on synthetic multi-room clouds
-(`tests/test_floorplan.py`, including a furniture-block-in-a-room case the earlier
-distance-transform method split in two); the real captures have no floor-plan ground truth,
-so the room dimensions above are unscored. Reproduce:
-`python benchmark/scripts/lidar_plan_figures.py` and `python run.py <capture> --tier lidar`.
+**Results.** The `.r3d` benchmark closes as **one room, 4.28 × 5.16 m, ceiling 2.70 m vs
+2.74 m tape (−1.5 %)** — where the old polygon path produced nothing.
+`single_scan_with_ceiling` resolves **four rooms, each with its own ceiling** (2.34 / 2.96 /
+3.08 / 3.08 m), plus one flagged ~100 m² region — the corridor and the rooms it links, which
+have too few internal walls to cut.
+
+**Still wrong, stated:** the corridor/hall is absorbed into the nearest room rather than
+named, so it reads as unlabelled space; the large open area is drawn as one flagged block;
+the wall-snap pulls a room's outline ~5–15 % inside its raw footprint. Synthetic-validated
+(`tests/test_floorplan.py`, incl. a furniture-in-a-room case the distance-transform method
+split); the real captures have no floor-plan ground truth, so the dimensions are unscored.
 
 ---
 

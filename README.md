@@ -28,8 +28,10 @@ python run.py benchmark/raw/video/IMG_0460.MOV        --tier video --out out_vid
 python run.py benchmark/raw/lidar/*.r3d               --tier lidar --out out_lidar
 ```
 
-Writes `<out>/result.json`, validated against `schemas/output.schema.json`. Photo input is
-one folder per room. `--no-cache` forces live depth inference (no cached outputs).
+Writes `<out>/result.json`, validated against `schemas/output.schema.json`, plus a rendered
+`blueprint.png`/`.svg`; the LiDAR tier also writes `raster.png` (the wall occupancy grid the
+plan is built from). Photo input is one folder per room. `--no-cache` forces live depth
+inference (no cached outputs).
 
 The tiers differ only in their loader. Everything from `pipeline/measure.py` down is shared
 and branches on whether frames carry poses, never on the tier name — so a video whose
@@ -67,13 +69,15 @@ Honest and row-by-row in **`docs/COMPLIANCE_MATRIX.md`**. Every `NOT BUILT` is g
 built; nothing is stubbed to look finished.
 
 **Working:** all three tier loaders, multi-view fusion for posed captures, plane geometry,
-ceiling height, wall-pair dimensions, opening detection, photo-tier property stitching, a
-regenerable fix loop, per-tier interval calibration, an on/off drift ablation, first-pass
-damage detection emitted in the schema output.
+ceiling height, wall-pair dimensions, opening detection, photo-tier property stitching,
+**LiDAR multi-room floor plan from the cloud (wall-line arrangement, §9)**, a regenerable fix
+loop, per-tier interval calibration, an on/off drift ablation, first-pass damage detection
+emitted in the schema output.
 **Not passing:** ceiling and wall gates (depth-model scale bias, identified in the report);
 repeatability — checked at the video tier, the two walkthroughs disagree by 18.8 cm.
 **Out of scope (team-confirmed):** head-to-head vs an incumbent; damage scoring.
-**Not built:** rendered multi-room plans for every tier.
+**Partial:** the LiDAR plan does not name the corridor/hall as its own region and leaves a
+large open area as one flagged block; video multi-room stitching is synthetic-validated only.
 
 Accuracy today: ceiling +3.8% LiDAR / +7.2% video / −13% to +12% per room photo.
 
